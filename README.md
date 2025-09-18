@@ -1,2 +1,10 @@
-# Python-Desktop-Application
-A feature-rich, reusable desktop application template built with Python and PySide6, your jumpstart kit for modern GUI apps.
+# Python Desktop Application Template
+Sample reusable feature-rich template desktop application built using python and PySide6.
+
+Available Features as of now
+- Modular Archetecture
+- Configuration Manager with json configuration saving.
+- Advanced logger class with events
+- Background worker (Thread pooling)
+
+NB: Initial development phase
