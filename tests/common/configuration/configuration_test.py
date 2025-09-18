@@ -101,7 +101,7 @@ def test_get_value_normal_and_as_string():
     assert isinstance(val_obj, SettingItem)
     assert val_obj.value == "New Value"
 
-    val_str = cm.get_value("sample_text_input", as_string=True)
+    val_str = cm.get_value("sample_text_input", as_string=True).value
     assert val_str == "New Value"
 
 def test_set_value_updates_dataclass_and_qsettings():
