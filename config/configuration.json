@@ -1,0 +1,103 @@
+{
+    "configuration": {
+        "user": {
+            "sample_text_input": {
+                "name": "Sample Text Input",
+                "value": "New Value",
+                "description": "A sample text input setting.",
+                "type": "text",
+                "accessibility": "user",
+                "group": "Sample Group 1",
+                "icon": "images/size.svg"
+            },
+            "sample_dropdown_input": {
+                "name": "Sample DropDown Input",
+                "value": [
+                    "Option 1",
+                    "Option 2"
+                ],
+                "description": "A sample drop down setting.",
+                "type": "dropdown",
+                "accessibility": "user",
+                "group": "Sample Group 1",
+                "icon": "images/size.svg"
+            },
+            "sample_file_browse": {
+                "name": "Sample File Browse",
+                "value": "C:\\some_file.txt",
+                "description": "A sample file browse setting.",
+                "type": "text",
+                "accessibility": "user",
+                "group": "Sample Group 1",
+                "icon": "images/size.svg"
+            },
+            "sample_folder_browse": {
+                "name": "Sample File Browse",
+                "value": "C:\\some_folder",
+                "description": "A sample folder browse setting.",
+                "type": "text",
+                "accessibility": "user",
+                "group": "Sample Group 1",
+                "icon": "images/size.svg"
+            }
+        },
+        "static": {
+            "sdk_ip_address": "127.0.0.1",
+            "sdk_tcp_port": 12346
+        }
+    },
+    "page_mapping": {
+        "defaults": {
+            "Home": {
+                "widget_ref": "frontend.core.pages.home.home_c",
+                "enabled": true,
+                "index": 1,
+                "icon": "images/dashboard.svg",
+                "selectable": true,
+                "license_required": true
+            },
+            "Logs": {
+                "widget_ref": "frontend.core.pages.log.log_c",
+                "enabled": true,
+                "index": 2,
+                "icon": "images/log.svg",
+                "selectable": true,
+                "license_required": true
+            },
+            "Settings": {
+                "widget_ref": "frontend.core.pages.settings.settings_c",
+                "enabled": true,
+                "index": 4,
+                "icon": "images/settings.svg",
+                "selectable": true,
+                "license_required": true
+            },
+            "License": {
+                "widget_ref": "frontend.core.pages.license.license_c",
+                "enabled": true,
+                "index": 5,
+                "icon": "images/license.svg",
+                "selectable": true,
+                "license_required": true
+            },
+            "About": {
+                "widget_ref": "frontend.core.pages.about.about_c",
+                "enabled": true,
+                "index": 6,
+                "icon": "images/about.svg",
+                "selectable": true,
+                "license_required": true
+            }
+        },
+        "plugins": {
+            "Sample Plugin": {
+                "widget_ref": "frontend.core.pages.plugin.sample_plugin_c",
+                "enabled": true,
+                "index": 3,
+                "icon": "images/plugin.svg",
+                "selectable": true,
+                "license_required": true
+            }
+        }
+    }
+}
