@@ -5,32 +5,49 @@ from queue import Queue
 from PySide6.QtCore import QObject, Signal
 
 
+class ColouredConsoleHandler(logging.StreamHandler):
+    """Custom handler to add colours to console output."""
+    COLORS = {
+        "DEBUG": "\033[37m",     # White / Light gray
+        "INFO": "\033[36m",      # Cyan
+        "WARNING": "\033[33m",   # Yellow
+        "ERROR": "\033[31m",     # Red
+        "CRITICAL": "\033[95m",  # Bright Magenta
+        "RESET": "\033[0m",
+    }
+
+    def format(self, record):
+        base = super().format(record)
+        color = self.COLORS.get(record.levelname, "")
+        reset = self.COLORS["RESET"]
+        return f"{color}{base}{reset}"
+
+
 class Logger(QObject):
-    """Singleton Qt Logger with queue-based storage, signal updates, and export feature."""
+    """Singleton Qt Logger with queue-based storage, coloured console output, and export feature."""
     _instance = None
     log_updated = Signal(str)  # Qt signal emitted when a new log entry is added
 
     def __new__(cls, *args, **kwargs):
-        """Singleton pattern using __new__."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, name: str = "Application", level=logging.INFO):
+    def __init__(self, name: str = "Application", level=logging.DEBUG):
         if getattr(self, "_initialized", False):
-            return  # Avoid reinitializing the singleton
+            return
 
         super().__init__()
         self.name = name
         self.level = level
-        self.logs = Queue()  # Queue-based in-memory log storage
+        self.logs = Queue()
 
-        # Setup Python logging
+        # Python logging setup
         self._logger = logging.getLogger(name)
         self._logger.setLevel(level)
         self._logger.propagate = False
 
-        console_handler = logging.StreamHandler()
+        console_handler = ColouredConsoleHandler()
         console_handler.setLevel(level)
         formatter = logging.Formatter(
             "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
@@ -47,13 +64,13 @@ class Logger(QObject):
         timestamp = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         formatted = f"{timestamp} | {level_name} | {msg}"
         self.logs.put(formatted)
+
         if level_name != "DEBUG":
             self.log_updated.emit(msg)
-        else:
-            print(formatted)
+
         return formatted
 
-    # Logging methods
+    # Public logging API (unchanged)
     def debug(self, msg, *args, **kwargs):
         formatted = self._store_log("DEBUG", msg)
         self._logger.debug(msg, *args, **kwargs)
@@ -79,7 +96,6 @@ class Logger(QObject):
         self._logger.critical(msg, *args, **kwargs)
         return formatted
 
-    # Decorator for function logging
     def log_function(self, level=logging.DEBUG):
         def decorator(func):
             @functools.wraps(func)
@@ -96,9 +112,7 @@ class Logger(QObject):
 
         return decorator
 
-    # Export logs to a file
     def export_to_file(self, file_path: str):
-        # Snapshot the queue into a list before writing
         items = list(self.logs.queue)
         with open(file_path, "w", encoding="utf-8") as f:
             for line in items:

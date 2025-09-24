@@ -3,6 +3,8 @@ import threading
 import json
 import inspect
 
+from common.logger import Logger
+
 
 class BackendServer:
     """
@@ -15,6 +17,7 @@ class BackendServer:
         self._server_socket = None
         self._running = False
         self._functions = {}
+        self._logger = Logger()
 
     def register_function(self, func, name=None):
         """
@@ -33,6 +36,7 @@ class BackendServer:
                 self._functions[key] = method
 
     def _handle_client(self, conn, addr):
+        self._logger.debug(f"Backend server connection from {addr}")
         with conn:
             while True:
                 try:
@@ -44,6 +48,7 @@ class BackendServer:
                     func_name = request.get("function")
                     args = request.get("args", [])
                     kwargs = request.get("kwargs", {})
+                    self._logger.debug(f"Backend server exec function: {func_name}")
 
                     if func_name in self._functions:
                         try:
@@ -75,7 +80,7 @@ class BackendServer:
         self._running = True
 
         def run():
-            print(f"[TCP SERVER] Listening on {self.host}:{self.port}")
+            self._logger.debug(f"Backend server started on {self.host}:{self.port}")
             while self._running:
                 try:
                     conn, addr = self._server_socket.accept()

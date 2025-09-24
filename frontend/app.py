@@ -54,7 +54,10 @@ def _initialise_app():
     while fb.running():
         time.sleep(0.1)
         QApplication.processEvents()
-    ApplicationContext.logger.info(f"Backend init status: {fb.result()[0]}, result: {fb.result()[1]}")
+    if fb.result()[0]:
+        ApplicationContext.logger.info(f"Backend init success: {fb.result()[0]}")
+    else:
+        ApplicationContext.logger.error(f"Backend init failure: error: {fb.result()[1]}")
     _backend_worker_demo()
 
 def _on_app_closing():
@@ -78,9 +81,9 @@ def _backend_worker_demo():
             for i in range(n):
                 QApplication.processEvents()
                 ApplicationContext.thread_manager.emit('backend_log_update', f"Non blocking delay {str(i)}")
-                await asyncio.sleep(0.001)
+                await asyncio.sleep(0.1)
                 # time.sleep(1)
-    f = ApplicationContext.thread_manager.run_async(non_blocking_work(100))
+    f = ApplicationContext.thread_manager.run_async(non_blocking_work(10))
     # f.result() # For waiting
 
     # def blocking_work(n):
