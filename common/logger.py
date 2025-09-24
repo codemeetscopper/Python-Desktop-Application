@@ -65,8 +65,8 @@ class Logger(QObject):
         formatted = f"{timestamp} | {level_name} | {msg}"
         self.logs.put(formatted)
 
-        if level_name != "DEBUG":
-            self.log_updated.emit(msg)
+        # if level_name != "DEBUG":
+        self.log_updated.emit(msg)
 
         return formatted
 

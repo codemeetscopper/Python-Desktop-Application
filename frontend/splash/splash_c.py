@@ -40,6 +40,6 @@ class Splash(QWidget):
         QApplication.processEvents()  # Update UI immediately
 
     def _on_log_updated(self, data):
-        if "DEBUG" in data:
-            return
+        # if "DEBUG" in data:
+        #     return
         self.set_progress(-1, data)
