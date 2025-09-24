@@ -43,7 +43,7 @@
         },
         "static": {
             "sdk_ip_address": "127.0.0.1",
-            "sdk_tcp_port": 12346
+            "sdk_tcp_port": 5000
         }
     },
     "page_mapping": {

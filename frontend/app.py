@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import time
 
 from PySide6.QtWidgets import QApplication
 
@@ -7,7 +8,7 @@ from common.configuration.parser import ConfigurationManager
 from common.logger import Logger
 from frontend import ApplicationContext
 from common import threadmanager
-from common.backendmanager import BackendManager
+from common.backendclient import BackendClient
 from frontend.mainwindow.mainwindow_c import MainWindow
 from frontend.splash.splash_c import Splash
 
@@ -19,6 +20,8 @@ def run():
 
     splash = Splash(ApplicationContext.name, ApplicationContext.version)
     splash.show()
+    ApplicationContext.logger.info("Initialising application...")
+    QApplication.processEvents()
     _initialise_app()
 
     window = MainWindow()
@@ -30,16 +33,42 @@ def run():
 def _initialise_context():
     ApplicationContext.logger = Logger()
     ApplicationContext.thread_manager = threadmanager.get_instance()
+    ApplicationContext.thread_manager.start()
     ApplicationContext.settings = ConfigurationManager(ApplicationContext.config_path)
 
     ip = ApplicationContext.settings.get_value('sdk_ip_address')
     port = ApplicationContext.settings.get_value('sdk_tcp_port')
 
-    ApplicationContext.sdk_manager = BackendManager(ip, port)
+    ApplicationContext.backend_client = BackendClient(ip, port)
     QApplication.processEvents()
 
 def _initialise_app():
-    ApplicationContext.thread_manager.start()
+    ApplicationContext.thread_manager.on("init_log_update", _on_init_status_update)
+    async def connect_to_backend(n):
+        with ApplicationContext.thread_manager.token():
+            await asyncio.sleep(0.0001)
+            ApplicationContext.thread_manager.emit('init_log_update', ApplicationContext.backend_client.call("unknown", 1))
+            ApplicationContext.thread_manager.emit('init_log_update', ApplicationContext.backend_client.call("math.multiply", 4, 6))
+            ApplicationContext.thread_manager.emit('init_log_update', ApplicationContext.backend_client.call("math.add", 2, 3))
+            ApplicationContext.thread_manager.emit('init_log_update', ApplicationContext.backend_client.call("hello", "codemeetscopper"))
+        return True
+
+    def blocking_work(n):
+        with ApplicationContext.thread_manager.token():
+            ApplicationContext.thread_manager.emit('init_log_update',ApplicationContext.backend_client.call("unknown", 1))
+            ApplicationContext.thread_manager.emit('init_log_update',ApplicationContext.backend_client.call("math.multiply", 4, 6))
+            ApplicationContext.thread_manager.emit('init_log_update',ApplicationContext.backend_client.call("math.add", 2, 3))
+            ApplicationContext.thread_manager.emit('init_log_update',ApplicationContext.backend_client.call("hello", "codemeetscopper"))
+            ApplicationContext.logger.info(f"blocking delay {str(n)}")
+        return True
+
+    # f = ApplicationContext.thread_manager.run_async(connect_to_backend(100))
+    fb = ApplicationContext.thread_manager.submit_blocking(blocking_work, 200)
+
+    # print(fb.result())
+    # while not f.result():
+    #     time.sleep(0.1)
+    #     QApplication.processEvents()
     _backend_worker_demo()
 
 def _on_app_closing():
@@ -47,6 +76,10 @@ def _on_app_closing():
     if ApplicationContext.thread_manager is not None:
         ApplicationContext.thread_manager.shutdown()
     ApplicationContext.logger.info("Goodbye!")
+
+def _on_init_status_update(data):
+    ApplicationContext.logger.info(data)
+    QApplication.processEvents()
 
 def _backend_worker_demo():
     def on_log_update(data):
