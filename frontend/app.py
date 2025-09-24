@@ -39,36 +39,22 @@ def _initialise_context():
     ip = ApplicationContext.settings.get_value('sdk_ip_address')
     port = ApplicationContext.settings.get_value('sdk_tcp_port')
 
-    ApplicationContext.backend_client = BackendClient(ip, port)
+    ApplicationContext.backend_client = BackendClient(ip, port, 300)
     QApplication.processEvents()
 
 def _initialise_app():
-    ApplicationContext.thread_manager.on("init_log_update", _on_init_status_update)
-    async def connect_to_backend(n):
+    def initialise_backend(n):
         with ApplicationContext.thread_manager.token():
-            await asyncio.sleep(0.0001)
-            ApplicationContext.thread_manager.emit('init_log_update', ApplicationContext.backend_client.call("unknown", 1))
-            ApplicationContext.thread_manager.emit('init_log_update', ApplicationContext.backend_client.call("math.multiply", 4, 6))
-            ApplicationContext.thread_manager.emit('init_log_update', ApplicationContext.backend_client.call("math.add", 2, 3))
-            ApplicationContext.thread_manager.emit('init_log_update', ApplicationContext.backend_client.call("hello", "codemeetscopper"))
-        return True
+            result = ApplicationContext.backend_client.call("sdk.initialise")
+        if result['status'] == 'ok': return True, result['result']
+        elif result['status'] == 'error': return False, result['message']
+        return False, None
 
-    def blocking_work(n):
-        with ApplicationContext.thread_manager.token():
-            ApplicationContext.thread_manager.emit('init_log_update',ApplicationContext.backend_client.call("unknown", 1))
-            ApplicationContext.thread_manager.emit('init_log_update',ApplicationContext.backend_client.call("math.multiply", 4, 6))
-            ApplicationContext.thread_manager.emit('init_log_update',ApplicationContext.backend_client.call("math.add", 2, 3))
-            ApplicationContext.thread_manager.emit('init_log_update',ApplicationContext.backend_client.call("hello", "codemeetscopper"))
-            ApplicationContext.logger.info(f"blocking delay {str(n)}")
-        return True
-
-    # f = ApplicationContext.thread_manager.run_async(connect_to_backend(100))
-    fb = ApplicationContext.thread_manager.submit_blocking(blocking_work, 200)
-
-    # print(fb.result())
-    # while not f.result():
-    #     time.sleep(0.1)
-    #     QApplication.processEvents()
+    fb = ApplicationContext.thread_manager.submit_blocking(initialise_backend, 200)
+    while fb.running():
+        time.sleep(0.1)
+        QApplication.processEvents()
+    ApplicationContext.logger.info(f"Backend init status: {fb.result()[0]}, result: {fb.result()[1]}")
     _backend_worker_demo()
 
 def _on_app_closing():

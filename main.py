@@ -1,7 +1,7 @@
-import backend.backend
+import backend.sdkmanager
 import frontend.app
 
 if __name__ == "__main__":
-    # backend.backend.run()
+    backend.sdkmanager.run()
     frontend.app.run()
-    backend.backend.stop()
+    backend.sdkmanager.stop()

@@ -1,11 +1,12 @@
 import logging
 import functools
 from datetime import datetime
+from queue import Queue
 from PySide6.QtCore import QObject, Signal
 
 
 class Logger(QObject):
-    """Singleton Qt Logger with in-memory storage, signal updates, and export feature."""
+    """Singleton Qt Logger with queue-based storage, signal updates, and export feature."""
     _instance = None
     log_updated = Signal(str)  # Qt signal emitted when a new log entry is added
 
@@ -15,14 +16,14 @@ class Logger(QObject):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, name: str="Application", level=logging.INFO):
+    def __init__(self, name: str = "Application", level=logging.INFO):
         if getattr(self, "_initialized", False):
             return  # Avoid reinitializing the singleton
 
         super().__init__()
         self.name = name
         self.level = level
-        self.logs = []  # In-memory log storage
+        self.logs = Queue()  # Queue-based in-memory log storage
 
         # Setup Python logging
         self._logger = logging.getLogger(name)
@@ -42,10 +43,10 @@ class Logger(QObject):
         self._initialized = True
 
     def _store_log(self, level_name: str, msg: str):
-        """Store log in memory and emit update signal."""
+        """Store log in queue and emit update signal."""
         timestamp = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         formatted = f"{timestamp} | {level_name} | {msg}"
-        self.logs.append(formatted)
+        self.logs.put(formatted)
         if level_name != "DEBUG":
             self.log_updated.emit(msg)
         else:
@@ -97,7 +98,8 @@ class Logger(QObject):
 
     # Export logs to a file
     def export_to_file(self, file_path: str):
+        # Snapshot the queue into a list before writing
+        items = list(self.logs.queue)
         with open(file_path, "w", encoding="utf-8") as f:
-            for line in self.logs:
+            for line in items:
                 f.write(line + "\n")
-
