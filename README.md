@@ -10,8 +10,9 @@ Version 1.0.0.2
 - tcp based backend api communication (suppot for distributed enviornments)
 
 Screenshots:
-<img width="1044" height="516" alt="image" src="https://github.com/user-attachments/assets/a0092ac1-596e-448d-a9dc-b802a1714f32" />
-<img width="1039" height="511" alt="image" src="https://github.com/user-attachments/assets/cbd49e04-fa42-402a-8733-4650ea956ddb" />
+
+<img width="600" height="300" alt="image" src="https://github.com/user-attachments/assets/a0092ac1-596e-448d-a9dc-b802a1714f32" />
+<img width="600" height="300" alt="image" src="https://github.com/user-attachments/assets/cbd49e04-fa42-402a-8733-4650ea956ddb" />
 
 
 
