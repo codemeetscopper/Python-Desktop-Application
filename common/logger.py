@@ -33,7 +33,7 @@ class Logger(QObject):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, name: str = "Application", level=logging.DEBUG):
+    def __init__(self, name: str = "Application", level=logging.INFO):
         if getattr(self, "_initialized", False):
             return
 
@@ -65,9 +65,8 @@ class Logger(QObject):
         formatted = f"{timestamp} | {level_name} | {msg}"
         self.logs.put(formatted)
 
-        # if level_name != "DEBUG":
-        self.log_updated.emit(msg)
-
+        if level_name != "DEBUG":
+            self.log_updated.emit(msg)
         return formatted
 
     # Public logging API (unchanged)
@@ -103,10 +102,10 @@ class Logger(QObject):
                 if self._logger.isEnabledFor(level):
                     arg_list = [repr(a) for a in args] + [f"{k}={v!r}" for k, v in kwargs.items()]
                     call_msg = f"Calling {func.__name__}({', '.join(arg_list)})"
-                    self._store_log(logging.getLevelName(level), call_msg)
+                    self.debug(call_msg)
                 result = func(*args, **kwargs)
                 if self._logger.isEnabledFor(level):
-                    self._store_log(logging.getLevelName(level), f"{func.__name__} returned {result!r}")
+                    self.debug(f"{func.__name__} returned {result!r}")
                 return result
             return wrapper
 

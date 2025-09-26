@@ -6,6 +6,7 @@ from typing import Any, Dict
 class SettingItem:
     name: str
     value: Any
+    values: Any
     description: str
     type: str
     accessibility: str

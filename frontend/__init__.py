@@ -2,20 +2,25 @@ from dataclasses import dataclass
 from typing import Optional
 
 from common.configuration.parser import ConfigurationManager
+from common.fontmanager import FontManager
 from common.logger import Logger
 from common.backendclient import BackendClient
+from common.stylemanager import StyleManager
 from common.threadmanager import ThreadManager
 
 
+# noinspection PyCompatibility
 @dataclass
 class AppContext:
-    name: str = "Python Desktop App Template"
-    version: str = "v0.1"
+    name: str = "Python-Desktop-Application"
+    version: str = "1.0.0.2"
     config_path: str = "config/configuration.json"
     logger: Optional[Logger] = None
     settings: Optional[ConfigurationManager] = None
-    thread_manager: Optional[ThreadManager] = None
-    backend_client: Optional[BackendClient] = None
+    styler: Optional[StyleManager] = None
+    font: Optional[FontManager] = None
+    threader: Optional[ThreadManager] = None
+    backend: Optional[BackendClient] = None
 
 # Create a single instance to share across your app
-ApplicationContext = AppContext()
+AppCntxt = AppContext()

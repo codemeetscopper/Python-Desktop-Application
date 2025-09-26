@@ -36,7 +36,7 @@ class BackendServer:
                 self._functions[key] = method
 
     def _handle_client(self, conn, addr):
-        self._logger.debug(f"Backend server connection from {addr}")
+        self._logger.debug(f"Backend server connection from {addr[0]}:{addr[1]}")
         with conn:
             while True:
                 try:
@@ -61,7 +61,7 @@ class BackendServer:
                             "status": "error",
                             "message": f"Unknown function '{func_name}'",
                         }
-
+                    self._logger.debug(f"Backend server exec response: {response}")
                     conn.sendall(json.dumps(response).encode("utf-8"))
                 except Exception as e:
                     error_msg = {"status": "error", "message": str(e)}

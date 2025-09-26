@@ -6,8 +6,8 @@ from common.logger import Logger
 class SDK:
     def initialise(self):
         logger = Logger()
-        for x in range(5):
+        for x in range(10):
             logger.debug(f"backend init {x}..")
-            time.sleep(0.5)
+            time.sleep(0.1)
         # raise Exception("backend init error 101")
         return True

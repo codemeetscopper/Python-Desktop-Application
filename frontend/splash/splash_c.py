@@ -6,6 +6,8 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap, QFont
 
 from common.logger import Logger
+from common.stylemanager import StyleManager
+from frontend import AppCntxt
 from frontend.splash.splash import Ui_Splash
 
 
@@ -20,16 +22,35 @@ class Splash(QWidget):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setFixedSize(600, 300)  # Customize as needed
 
-        # pixmap = QPixmap("splash_image.png")  # Put your image path here
-        # self.ui.logo_label.setPixmap(pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation))
-        # self.ui.logo_label.setGeometry(0, 0, 500, 300)
-
-        # App Name
         self.ui.app_name_label.setText(self.app_name)
         self.ui.version_label.setText(self.version)
 
         logger = Logger()
         logger.log_updated.connect(self._on_log_updated)
+
+        self.setPalette(AppCntxt.styler.get_palette())
+        self.setFont(AppCntxt.font.get_font('pc'))
+        self.ui.app_name_label.setFont(AppCntxt.font.get_font('h1'))
+        self.ui.app_name_label.setStyleSheet(f"color: {AppCntxt.styler.get_colour('accent')}")
+        self.ui.progress_bar.setRange(0, 0)
+
+        self.ui.logo_label.setPixmap(AppCntxt.styler.get_pixmap('logo',
+                                                                AppCntxt.styler.get_colour('accent'),
+                                                                100))
+        style = f"""
+QProgressBar {{
+    background-color: {AppCntxt.styler.get_colour('bg1')};
+    color: {AppCntxt.styler.get_colour('accent')}; /* text color */
+}}
+
+QProgressBar::chunk {{
+    background-color: {AppCntxt.styler.get_colour('accent')};
+    border-radius: 5px;
+}}
+"""
+        self.ui.progress_bar.setStyleSheet(style)
+        self.ui.progress_bar.setMaximumHeight(5)
+
 
 
     def set_progress(self, value=-1, status_text=None):
@@ -40,6 +61,6 @@ class Splash(QWidget):
         QApplication.processEvents()  # Update UI immediately
 
     def _on_log_updated(self, data):
-        # if "DEBUG" in data:
-        #     return
+        if 'DEBUG' in data:
+            return
         self.set_progress(-1, data)

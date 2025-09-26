@@ -1,48 +1,9 @@
-import logging
+a = "2025-09-26 10:48:40,485 | DEBUG | Application | Backend server exec response: {'status': 'ok', 'result': True}"
 
-from common.logger import QtLogger
 
-# ---------------- Example usage ----------------
-if __name__ == "__main__":
-    from PySide6.QtWidgets import QApplication, QTextEdit, QVBoxLayout, QWidget
-    import sys
+def _on_log_updated( data):
+    if 'DEBUG' in data:
+        return
+    print(-1, data)
 
-    app = QApplication([])
-
-    logger = QtLogger()
-
-    class LogViewer(QWidget):
-        def __init__(self):
-            super().__init__()
-            self.setWindowTitle("Log Viewer")
-            self.resize(600, 400)
-
-            layout = QVBoxLayout()
-            self.text_edit = QTextEdit()
-            self.text_edit.setReadOnly(True)
-            layout.addWidget(self.text_edit)
-            self.setLayout(layout)
-
-            logger.log_updated.connect(self.append_log)
-
-        def append_log(self, msg: str):
-            self.text_edit.append(msg)
-
-    viewer = LogViewer()
-    viewer.show()
-
-    @logger.log_function()
-    def add(a, b):
-        return a + b
-
-    @logger.log_function(level=logging.INFO)
-    def greet(name):
-        return f"Hello, {name}!"
-
-    add(5, 7)
-    greet("Aby")
-    logger.info("Custom info message")
-
-    logger.export_to_file("app_log.txt")
-
-    sys.exit(app.exec())
+_on_log_updated(a)

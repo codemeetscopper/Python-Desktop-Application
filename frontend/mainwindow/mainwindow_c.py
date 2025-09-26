@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QMainWindow, QLabel, QVBoxLayout, QWidget
 
 from common.configuration.parser import ConfigurationManager, LOGGER
 from common.logger import Logger
+from frontend import AppCntxt
 from frontend.mainwindow.mainwindow import Ui_MainWindow
 
 
@@ -30,8 +31,15 @@ class MainWindow(QMainWindow):
         container.setLayout(layout)
         self.setCentralWidget(container)
 
+        self._apply_style()
+
+    def _apply_style(self):
+        self.setPalette(AppCntxt.styler.get_palette())
+        self.setFont(AppCntxt.font.get_font('p'))
+
     def _on_log_updated(self, log_text):
-        self.ui.statusbar.showMessage(log_text)
+        if 'DEBUG' not in log_text:
+            self.ui.statusbar.showMessage(log_text)
 
     def closeEvent(self, event):
         self.close()

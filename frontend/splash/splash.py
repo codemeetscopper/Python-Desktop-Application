@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'splashkfbeqF.ui'
+## Form generated from reading UI file 'splashYpVODo.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.2
 ##
@@ -24,6 +24,7 @@ class Ui_Splash(object):
             Splash.setObjectName(u"Splash")
         Splash.resize(642, 295)
         self.verticalLayout = QVBoxLayout(Splash)
+        self.verticalLayout.setSpacing(4)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.logo_label = QLabel(Splash)
         self.logo_label.setObjectName(u"logo_label")
@@ -33,24 +34,33 @@ class Ui_Splash(object):
         self.app_name_label = QLabel(Splash)
         self.app_name_label.setObjectName(u"app_name_label")
 
-        self.verticalLayout.addWidget(self.app_name_label, 0, Qt.AlignmentFlag.AlignHCenter|Qt.AlignmentFlag.AlignVCenter)
+        self.verticalLayout.addWidget(self.app_name_label, 0, Qt.AlignmentFlag.AlignHCenter|Qt.AlignmentFlag.AlignBottom)
 
         self.version_label = QLabel(Splash)
         self.version_label.setObjectName(u"version_label")
 
-        self.verticalLayout.addWidget(self.version_label, 0, Qt.AlignmentFlag.AlignHCenter|Qt.AlignmentFlag.AlignVCenter)
+        self.verticalLayout.addWidget(self.version_label, 0, Qt.AlignmentFlag.AlignHCenter|Qt.AlignmentFlag.AlignTop)
 
         self.progress_bar = QProgressBar(Splash)
         self.progress_bar.setObjectName(u"progress_bar")
-        self.progress_bar.setValue(24)
+        self.progress_bar.setMaximum(100)
+        self.progress_bar.setValue(50)
+        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignBottom|Qt.AlignmentFlag.AlignHCenter)
+        self.progress_bar.setTextVisible(False)
 
-        self.verticalLayout.addWidget(self.progress_bar)
+        self.verticalLayout.addWidget(self.progress_bar, 0, Qt.AlignmentFlag.AlignBottom)
 
         self.status_label = QLabel(Splash)
         self.status_label.setObjectName(u"status_label")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
 
-        self.verticalLayout.addWidget(self.status_label)
+        self.verticalLayout.addWidget(self.status_label, 0, Qt.AlignmentFlag.AlignTop)
 
+        self.verticalLayout.setStretch(0, 9)
+        self.verticalLayout.setStretch(1, 3)
+        self.verticalLayout.setStretch(2, 1)
+        self.verticalLayout.setStretch(3, 1)
+        self.verticalLayout.setStretch(4, 1)
 
         self.retranslateUi(Splash)
 

@@ -1,9 +1,39 @@
 {
     "configuration": {
         "user": {
+            "accent": {
+                "name": "Accent Colour",
+                "value": "#a52b2b",
+                "values": [
+                    "#a52b2b",
+                    "#b52b2b",
+                    "#0c4d35",
+                    "#ccff00",
+                    "#7d8be0"
+                ],
+                "description": "A sample drop down setting.",
+                "type": "dropdown",
+                "accessibility": "user",
+                "group": "Appearance Settings",
+                "icon": "images/size.svg"
+            },
+            "theme": {
+                "name": "Colour Theme",
+                "value": "light",
+                "values": [
+                    "dark",
+                    "light"
+                ],
+                "description": "A sample drop down setting.",
+                "type": "dropdown",
+                "accessibility": "user",
+                "group": "Appearance Settings",
+                "icon": "images/size.svg"
+            },
             "sample_text_input": {
                 "name": "Sample Text Input",
                 "value": "New Value",
+                "values": [],
                 "description": "A sample text input setting.",
                 "type": "text",
                 "accessibility": "user",
@@ -12,7 +42,8 @@
             },
             "sample_dropdown_input": {
                 "name": "Sample DropDown Input",
-                "value": [
+                "value": "Option 1",
+                "values": [
                     "Option 1",
                     "Option 2"
                 ],
@@ -25,6 +56,7 @@
             "sample_file_browse": {
                 "name": "Sample File Browse",
                 "value": "C:\\some_file.txt",
+                "values": [],
                 "description": "A sample file browse setting.",
                 "type": "text",
                 "accessibility": "user",
@@ -34,6 +66,7 @@
             "sample_folder_browse": {
                 "name": "Sample File Browse",
                 "value": "C:\\some_folder",
+                "values": [],
                 "description": "A sample folder browse setting.",
                 "type": "text",
                 "accessibility": "user",
@@ -43,7 +76,8 @@
         },
         "static": {
             "sdk_ip_address": "127.0.0.1",
-            "sdk_tcp_port": 5000
+            "sdk_tcp_port": 5000,
+            "sdk_tcp_timeout": 300
         }
     },
     "page_mapping": {

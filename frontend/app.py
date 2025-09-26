@@ -1,14 +1,18 @@
 import asyncio
+import os
 import sys
 import time
 
 from PySide6.QtWidgets import QApplication
 
-from common.configuration.parser import ConfigurationManager
-from common.logger import Logger
-from frontend import ApplicationContext
 from common import threadmanager
 from common.backendclient import BackendClient
+from common.configuration.parser import ConfigurationManager
+from common.fontmanager import FontManager
+from common.logger import Logger
+from common.stylemanager import StyleManager
+from frontend import AppCntxt
+from frontend.core.popup.popup_c import Popup
 from frontend.mainwindow.mainwindow_c import MainWindow
 from frontend.splash.splash_c import Splash
 
@@ -16,74 +20,110 @@ from frontend.splash.splash_c import Splash
 def run():
     app = QApplication(sys.argv)
     _initialise_context()
-    ApplicationContext.logger.info("Welcome!")
+    AppCntxt.logger.info("Welcome!")
 
-    splash = Splash(ApplicationContext.name, ApplicationContext.version)
+    splash = Splash(AppCntxt.name, f"Version {AppCntxt.version}")
     splash.show()
-    ApplicationContext.logger.info("Initialising application...")
+    AppCntxt.logger.info("Initialising application...")
     QApplication.processEvents()
-    _initialise_app()
+    status, error = _initialise_app()
+    if status:
+        window = MainWindow()
+        window.window_closing.connect(_on_app_closing)
+        window.show()
+        AppCntxt.logger.info("Ready")
 
-    window = MainWindow()
-    window.window_closing.connect(_on_app_closing)
-    window.show()
+    if not status:
+        Popup.show_popup("Failed to start",
+                              f"The following error occurred:\n{error}\n",
+                              mtype="error", parent=splash)
+        _on_app_closing()
     splash.close()
-    sys.exit(app.exec())
+    app.exec()
 
 def _initialise_context():
-    ApplicationContext.logger = Logger()
-    ApplicationContext.thread_manager = threadmanager.get_instance()
-    ApplicationContext.thread_manager.start()
-    ApplicationContext.settings = ConfigurationManager(ApplicationContext.config_path)
+    AppCntxt.logger = Logger()
+    AppCntxt.threader = threadmanager.get_instance()
 
-    ip = ApplicationContext.settings.get_value('sdk_ip_address')
-    port = ApplicationContext.settings.get_value('sdk_tcp_port')
+    AppCntxt.threader.start()
+    AppCntxt.settings = ConfigurationManager(AppCntxt.config_path)
 
-    ApplicationContext.backend_client = BackendClient(ip, port, 300)
+    ip = AppCntxt.settings.get_value('sdk_ip_address')
+    port = AppCntxt.settings.get_value('sdk_tcp_port')
+    timeout = AppCntxt.settings.get_value('sdk_tcp_timeout')
+    AppCntxt.backend = BackendClient(ip, port, timeout)
+
+    AppCntxt.styler = StyleManager()
+    accent = AppCntxt.settings.get_value('accent')
+    theme = AppCntxt.settings.get_value('theme')
+    AppCntxt.styler.initialise(accent.value, theme.value)
+
+    AppCntxt.font = FontManager()
+    AppCntxt.font.load_font(r"frontend/resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h1", 18)
+    AppCntxt.font.load_font(r"frontend/resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h2", 14)
+    AppCntxt.font.load_font(r"frontend/resources/fonts/Roboto-VariableFont_wdth,wght.ttf", "p", 11)
+    AppCntxt.font.load_font(r"frontend/resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "pc", 11)
+    AppCntxt.font.load_font(r"frontend/resources/fonts/Inconsolata-VariableFont_wdth,wght.ttf", "log", 11)
+
     QApplication.processEvents()
 
 def _initialise_app():
-    def initialise_backend(n):
-        with ApplicationContext.thread_manager.token():
-            result = ApplicationContext.backend_client.call("sdk.initialise")
+    def initialise_backend():
+        with AppCntxt.threader.token():
+            result = AppCntxt.backend.call("sdk.initialise")
         if result['status'] == 'ok': return True, result['result']
         elif result['status'] == 'error': return False, result['message']
         return False, None
-
-    fb = ApplicationContext.thread_manager.submit_blocking(initialise_backend, 200)
+    api_reply = False
+    error = None
+    fb = AppCntxt.threader.submit_blocking(initialise_backend)
     while fb.running():
-        time.sleep(0.1)
+        # time.sleep(0.01)
         QApplication.processEvents()
     if fb.result()[0]:
-        ApplicationContext.logger.info(f"Backend init success: {fb.result()[0]}")
+        AppCntxt.logger.info("Backend initialisation is success")
+        api_reply = True
     else:
-        ApplicationContext.logger.error(f"Backend init failure: error: {fb.result()[1]}")
-    _backend_worker_demo()
+        AppCntxt.logger.critical(f"Backend init failure: error: {fb.result()[1]}")
+        error = fb.result()[1]
+    # _backend_worker_demo()
+    return api_reply, error
 
 def _on_app_closing():
-    ApplicationContext.logger.info("Cleaning up...")
-    if ApplicationContext.thread_manager is not None:
-        ApplicationContext.thread_manager.shutdown()
-    ApplicationContext.logger.info("Goodbye!")
-
-def _on_init_status_update(data):
-    ApplicationContext.logger.info(data)
+    splash = Splash(AppCntxt.name, f"Version {AppCntxt.version}")
+    splash.show()
+    AppCntxt.logger.info("Cleaning up...")
+    def cleanup():
+        with AppCntxt.threader.token():
+            time.sleep(3)
+        return True
+    fb = AppCntxt.threader.submit_blocking(cleanup)
+    time.sleep(0.1)
+    while fb.running():
+        time.sleep(0.01)
+        QApplication.processEvents()
+    splash.close()
+    fb.result()
     QApplication.processEvents()
+    if AppCntxt.threader is not None:
+        AppCntxt.threader.shutdown()
+    AppCntxt.logger.info("Goodbye!")
+    sys.exit(0)
 
 def _backend_worker_demo():
     def on_log_update(data):
-        ApplicationContext.logger.info(data)
+        AppCntxt.logger.info(data)
 
-    ApplicationContext.thread_manager.on("backend_log_update", on_log_update)
+    AppCntxt.threader.on("backend_log_update", on_log_update)
 
     async def non_blocking_work(n):
-        with ApplicationContext.thread_manager.token():
+        with AppCntxt.threader.token():
             for i in range(n):
                 QApplication.processEvents()
-                ApplicationContext.thread_manager.emit('backend_log_update', f"Non blocking delay {str(i)}")
+                AppCntxt.threader.emit('backend_log_update', f"Non blocking delay {str(i)}")
                 await asyncio.sleep(0.1)
                 # time.sleep(1)
-    f = ApplicationContext.thread_manager.run_async(non_blocking_work(10))
+    f = AppCntxt.threader.run_async(non_blocking_work(100))
     # f.result() # For waiting
 
     # def blocking_work(n):
