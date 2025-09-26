@@ -88,6 +88,7 @@ def test_init_without_json_raises():
     with pytest.raises(ConfigurationJsonNotProvided):
         ConfigurationManager("")
 
+
 def test_load_parses_json_correctly():
     cm = get_mock_config_manager()
     assert cm.data.configuration.user["sample_text_input"].value == "New Value"

@@ -3,8 +3,8 @@ from backend.sdk import SDK
 
 SERVER = BackendServer()
 
+
 def run():
-    global SERVER
     # Register individual function
     def hello(name):
         return f"Hello, {name}!"
@@ -14,6 +14,6 @@ def run():
     SERVER.register_instance(sdk, prefix="sdk")
     SERVER.start()
 
+
 def stop():
-    global SERVER
     SERVER.stop()

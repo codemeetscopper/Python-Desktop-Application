@@ -8,6 +8,6 @@ class SDK:
         logger = Logger()
         for x in range(10):
             logger.debug(f"backend init {x}..")
-            time.sleep(0.1)
+            time.sleep(1)
         # raise Exception("backend init error 101")
         return True

@@ -1,7 +1,7 @@
 import json
 import logging
-import time
 from dataclasses import asdict
+
 from PySide6.QtCore import QSettings
 from PySide6.QtGui import QColor
 
@@ -10,6 +10,7 @@ from .models import PageMapping, AppSettings, Configuration, SettingItem, PageIn
 from ..logger import Logger
 
 LOGGER = Logger()
+
 
 class ConfigurationManager:
     _instance = None

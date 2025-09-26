@@ -2,6 +2,7 @@ from PySide6.QtGui import QFontDatabase, QFont
 import os
 from itertools import cycle
 
+
 class FontManager:
     _instance = None
 

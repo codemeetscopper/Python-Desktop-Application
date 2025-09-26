@@ -6,10 +6,9 @@ from typing import Dict, Optional, Union
 
 import PySide6
 from PySide6.QtCore import QByteArray
-from PySide6.QtGui import QColor, QPalette, QFont, QPixmap, QPainter
+from PySide6.QtGui import QColor, QPalette, QPixmap, QPainter
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QApplication
-
 
 ColourLike = Union[str, QColor]
 
@@ -55,7 +54,7 @@ class StyleManager:
             white = QColor(255, 255, 255)
             black = QColor(0, 0, 0)
             lighten = lambda c, t: cls._blend(c, white, t)   # t in [0,1]
-            darken  = lambda c, t: cls._blend(c, black, t)   # t in [0,1]
+            darken = lambda c, t: cls._blend(c, black, t)   # t in [0,1]
 
             # Accent variants (progressive)
             accent = base
@@ -72,16 +71,16 @@ class StyleManager:
             # Background/Foreground based on auto theme
             if cls._resolved_mode == "dark":
                 # Dark surfaces + light text (with small elevation steps)
-                bg  = QColor(18, 18, 18)               # #121212
+                bg = QColor(18, 18, 18)               # #121212
                 bg1 = lighten(bg, 0.08)                # +elevation
                 bg2 = lighten(bg, 0.16)                # +more elevation
-                fg  = QColor(237, 237, 237)            # light text
+                fg = QColor(237, 237, 237)            # light text
             else:
                 # Light surfaces + dark text (bg1/bg2 lighter than bg)
-                bg  = QColor(247, 247, 247)            # ~#F7F7F7
+                bg = QColor(247, 247, 247)            # ~#F7F7F7
                 bg1 = lighten(bg, 0.06)
                 bg2 = lighten(bg, 0.12)
-                fg  = QColor(17, 17, 17)               # ~#111111
+                fg = QColor(17, 17, 17)               # ~#111111
 
             # Secondary/tertiary foreground (muted)
             fg1 = cls._blend(fg, bg, 0.35)
@@ -194,6 +193,7 @@ class StyleManager:
         if not q.isValid():
             raise ValueError(f"Invalid color string: {value!r}")
         return q
+
     @staticmethod
     def to_hex(c: ColourLike) -> str:
         q = StyleManager._to_qcolor(c)
@@ -275,7 +275,7 @@ class StyleManager:
         p.setColor(QPalette.WindowText, fg)
         p.setColor(QPalette.Text, fg)
         p.setColor(QPalette.ButtonText, fg)
-        p.setColor(QPalette.PlaceholderText, cls._blend(fg_muted, bg, 0.5))
+        p.setColor(QPalette.PlaceholderText, fg_alt)
 
         # Links & selections
         p.setColor(QPalette.Link, accent_l1)
@@ -309,4 +309,3 @@ class StyleManager:
         def contrast(c: QColor) -> float:
             return abs(cls._relative_luminance(bg) - cls._relative_luminance(c))
         return max(candidates, key=contrast)
-
