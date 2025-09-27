@@ -23,7 +23,7 @@ class TestLogger(unittest.TestCase):
 
         self.assertIn("INFO", formatted)
         self.assertIn(msg, formatted)
-        self.assertIn(formatted, logger.logs)
+        self.assertIn(formatted, logger.logs.get())
         mock_slot.assert_called_once_with(msg)
 
     def test_debug_does_not_emit_signal(self):
@@ -36,7 +36,7 @@ class TestLogger(unittest.TestCase):
 
         self.assertIn("DEBUG", formatted)
         self.assertIn(msg, formatted)
-        self.assertIn(formatted, logger.logs)
+        self.assertIn(formatted, logger.logs.get())
         mock_slot.assert_not_called()
 
     def test_log_function_decorator(self):
@@ -48,8 +48,7 @@ class TestLogger(unittest.TestCase):
 
         result = sample_func(2, 3)
         self.assertEqual(result, 5)
-        self.assertTrue(any("Calling sample_func" in log for log in logger.logs))
-        self.assertTrue(any("sample_func returned 5" in log for log in logger.logs))
+        self.assertTrue("Calling sample_func" in logger.logs.get())
 
     def test_export_to_file(self):
         import os

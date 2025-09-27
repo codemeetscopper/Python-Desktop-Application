@@ -20,6 +20,7 @@ TEST_JSON = {
             "sample_text_input": {
                 "name": "Sample Text Input",
                 "value": "New Value",
+                "values":"",
                 "description": "A sample text input setting.",
                 "type": "text",
                 "accessibility": "user",
@@ -28,7 +29,8 @@ TEST_JSON = {
             },
             "sample_dropdown_input": {
                 "name": "Sample DropDown Input",
-                "value": ["Option 1", "Option 2"],
+                "value": "Option 1",
+                "values": ["Option 1", "Option 2"],
                 "description": "A sample drop down setting.",
                 "type": "dropdown",
                 "accessibility": "user",
