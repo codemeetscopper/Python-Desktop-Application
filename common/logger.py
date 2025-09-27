@@ -33,7 +33,7 @@ class Logger(QObject):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, name: str = "Application", level=logging.INFO):
+    def __init__(self, name: str = "Application", level=logging.DEBUG):
         if getattr(self, "_initialized", False):
             return
 

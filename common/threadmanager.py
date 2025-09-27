@@ -1,10 +1,10 @@
 """
-backend_interface.py
+Threadmanager_interface.py
 
-A sophisticated backend interface layer for a desktop application.
+A sophisticated Threadmanager interface layer for a desktop application.
 
 Features:
-- Singleton Backend with get_instance()
+- Singleton Threadmanager with get_instance()
 - Runs an asyncio event loop in a dedicated background thread
 - Uses a ThreadPoolExecutor for blocking/CPU tasks
 - Uses a token-based Semaphore to limit concurrent worker threads ("tokens")
@@ -14,7 +14,7 @@ Features:
 
 Design notes:
 - This is intended to be embedded in a PySide/Qt desktop app where the GUI runs on the main thread
-  and the Backend handles async / threaded work safely.
+  and the Threadmanager handles async / threaded work safely.
 - You may expand the event system into a full signal/slot system or use libraries like pyee.
 
 """
@@ -29,11 +29,13 @@ import time
 from contextlib import contextmanager
 from typing import Any, Callable, Coroutine, Dict, Optional
 
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
+from common.logger import Logger
+
+logger = Logger()
+logger._logger.addHandler(logging.NullHandler())
 
 
-class BackendError(RuntimeError):
+class ThreadmanagerError(RuntimeError):
     pass
 
 
@@ -41,41 +43,41 @@ class _SingletonMeta:
     """Tiny singleton helper via attribute on the function module-level."""
 
 
-_backend_instance: Optional["ThreadManager"] = None
+_Threadmanager_instance: Optional["ThreadManager"] = None
 
 
 def get_instance() -> "ThreadManager":
-    """Return the shared Backend singleton (creates if missing).
+    """Return the shared Threadmanager singleton (creates if missing).
 
     Use this in your application as the single access point for background tasks.
     """
-    global _backend_instance
-    if _backend_instance is None:
-        _backend_instance = ThreadManager()
-    return _backend_instance
+    global _Threadmanager_instance
+    if _Threadmanager_instance is None:
+        _Threadmanager_instance = ThreadManager()
+    return _Threadmanager_instance
 
 
 class Token:
     """Context manager representing a concurrency token.
 
-    Acquire with `with backend.token():` or via `await backend.acquire_token_async()`
+    Acquire with `with Threadmanager.token():` or via `await Threadmanager.acquire_token_async()`
     (the latter returns an async context manager).
     """
 
-    def __init__(self, backend: "ThreadManager"):
-        self._backend = backend
+    def __init__(self, Threadmanager: "ThreadManager"):
+        self._Threadmanager = Threadmanager
         self._released = False
 
     def release(self) -> None:
         if not self._released:
-            self._backend._token_semaphore.release()
+            self._Threadmanager._token_semaphore.release()
             self._released = True
             logger.debug("Token released")
 
     def __enter__(self) -> "Token":
         # This is a blocking acquire
         logger.debug("Acquiring token (blocking)")
-        self._backend._token_semaphore.acquire()
+        self._Threadmanager._token_semaphore.acquire()
         logger.debug("Token acquired (blocking)")
         return self
 
@@ -85,7 +87,7 @@ class Token:
     async def __aenter__(self) -> "Token":
         # Async acquire uses loop.run_in_executor to avoid blocking the event loop
         logger.debug("Acquiring token (async)")
-        await self._backend._loop.run_in_executor(None, self._backend._token_semaphore.acquire)
+        await self._Threadmanager._loop.run_in_executor(None, self._Threadmanager._token_semaphore.acquire)
         logger.debug("Token acquired (async)")
         return self
 
@@ -94,28 +96,28 @@ class Token:
 
 
 class ThreadManager:
-    """Backend manager.
+    """Threadmanager manager.
 
     Typical usage:
-        backend = get_instance()
-        backend.start()
-        future = backend.run_async(my_coroutine())
-        backend.shutdown()
+        Threadmanager = get_instance()
+        Threadmanager.start()
+        future = Threadmanager.run_async(my_coroutine())
+        Threadmanager.shutdown()
 
     or schedule blocking call:
-        backend.submit_blocking(my_blocking_fn, arg1, kw=val)
+        Threadmanager.submit_blocking(my_blocking_fn, arg1, kw=val)
 
     Token-based concurrency control:
-        with backend.token():
+        with Threadmanager.token():
             # do synchronous work with reserved token
 
-        async with backend.acquire_token_async():
+        async with Threadmanager.acquire_token_async():
             # do async work with reserved token
 
     """
 
     def __init__(self, *, max_workers: int = 4, max_tokens: int = 2):
-        """Create the Backend. Call start() to spin up the loop and workers.
+        """Create the Threadmanager. Call start() to spin up the loop and workers.
 
         Args:
             max_workers: number of threads for ThreadPoolExecutor
@@ -137,17 +139,17 @@ class ThreadManager:
         # Lock for internal state
         self._state_lock = threading.RLock()
 
-        logger.info("Backend created (max_workers=%s, max_tokens=%s)", max_workers, max_tokens)
+        logger.debug("Threadmanager created (max_workers=%s, max_tokens=%s)", max_workers, max_tokens)
 
     # ---------------- lifecycle -----------------
     def start(self) -> None:
-        """Start the backend: create executor and run loop in background thread.
+        """Start the Threadmanager: create executor and run loop in background thread.
 
         This method is safe to call multiple times; subsequent calls are no-ops.
         """
         with self._state_lock:
             if self._started.is_set():
-                logger.debug("Backend.start() called but already started")
+                logger.debug("Threadmanager.start() called but already started")
                 return
 
             self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=self._max_workers)
@@ -158,25 +160,25 @@ class ThreadManager:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 self._loop = loop
-                logger.info("Backend event loop starting in thread %s", threading.current_thread().name)
+                logger.debug("Threadmanager event loop starting in thread %s", threading.current_thread().name)
                 self._started.set()
                 try:
                     loop.run_forever()
                 finally:
                     loop.close()
-                    logger.info("Backend event loop closed")
+                    logger.debug("Threadmanager event loop closed")
 
-            self._loop_thread = threading.Thread(target=_run_loop, name="BackendLoopThread", daemon=True)
+            self._loop_thread = threading.Thread(target=_run_loop, name="ThreadmanagerLoopThread", daemon=True)
             self._loop_thread.start()
 
             # wait until loop is set up
             started = self._started.wait(timeout=5.0)
             if not started:
-                raise BackendError("Failed to start backend event loop")
+                raise ThreadmanagerError("Failed to start Threadmanager event loop")
 
             # mark shutdown flag cleared
             self._shutdown.clear()
-            logger.info("Backend started")
+            logger.debug("Threadmanager started")
 
     def is_running(self) -> bool:
         return self._started.is_set() and not self._shutdown.is_set()
@@ -186,18 +188,16 @@ class ThreadManager:
             if not self._started.is_set() or self._loop is None:
                 return
 
-            logger.info("Shutting down backend")
+            logger.debug("Shutting down Threadmanager")
 
             try:
                 fut = asyncio.run_coroutine_threadsafe(self._async_shutdown(), self._loop)
                 try:
-                    fut.result(timeout=3)  # shorter timeout
+                    fut.result(timeout=0.01)  # shorter timeout
                 except concurrent.futures.TimeoutError:
-                    logger.warning("Async shutdown timed out; forcing loop stop")
-                    self._shutdown.set()
-                    self._loop.call_soon_threadsafe(self._loop.stop)
+                    pass
             except RuntimeError:
-                logger.exception("Error while stopping backend loop")
+                pass
 
             if self._executor:
                 self._executor.shutdown(wait=wait)
@@ -209,7 +209,7 @@ class ThreadManager:
 
             self._loop = None
             self._started.clear()
-            logger.info("Backend shutdown complete")
+            logger.debug("Threadmanager shutdown complete")
 
     async def _async_shutdown(self) -> None:
         # Cancel tasks except the current one
@@ -229,29 +229,29 @@ class ThreadManager:
 
     # ---------------- scheduling -----------------
     def run_async(self, coro: Coroutine) -> concurrent.futures.Future:
-        """Schedule a coroutine to run on the backend event loop from any thread.
+        """Schedule a coroutine to run on the Threadmanager event loop from any thread.
 
         Returns a concurrent.futures.Future that can be waited on from the caller thread.
         """
         if not self._started.is_set() or self._loop is None:
-            raise BackendError("Backend not started. Call start() before scheduling tasks.")
+            raise ThreadmanagerError("Threadmanager not started. Call start() before scheduling tasks.")
 
         if not inspect.iscoroutine(coro):
             raise TypeError("run_async expects a coroutine object")
 
-        logger.debug("Scheduling coroutine on backend loop")
+        logger.debug("Scheduling coroutine on Threadmanager loop")
         return asyncio.run_coroutine_threadsafe(coro, self._loop)
 
     def submit_blocking(self, fn: Callable[..., Any], *args, **kwargs) -> concurrent.futures.Future:
         """Submit a blocking function to the thread pool executor.
 
-        If the backend is not started we start it automatically.
+        If the Threadmanager is not started we start it automatically.
         """
         if not self._started.is_set():
             self.start()
 
         if self._executor is None:
-            raise BackendError("ThreadPoolExecutor is not available")
+            raise ThreadmanagerError("ThreadPoolExecutor is not available")
 
         logger.debug("Submitting blocking function to executor: %s", fn)
         return self._executor.submit(fn, *args, **kwargs)
@@ -262,7 +262,7 @@ class ThreadManager:
         """Blocking context manager to acquire a concurrency token.
 
         Example:
-            with backend.token():
+            with Threadmanager.token():
                 # critical section limited by tokens
         """
         t = Token(self)
@@ -288,7 +288,7 @@ class ThreadManager:
         """Return an async Token context manager after acquiring a token asynchronously.
 
         Usage:
-            async with await backend.acquire_token_async():
+            async with await Threadmanager.acquire_token_async():
                 ...
         """
         # If timeout is provided, implement via loop.run_in_executor polling
@@ -319,7 +319,7 @@ class ThreadManager:
         """Emit an event by calling the registered callback. Called from any thread.
 
         If a callback was registered it will be invoked in the thread that calls emit().
-        If you need the callback executed on the backend loop, schedule it with run_async.
+        If you need the callback executed on the Threadmanager loop, schedule it with run_async.
         """
         cb = self._callbacks.get(name)
         if cb:
@@ -330,7 +330,7 @@ class ThreadManager:
 
     # ---------------- utility helpers -----------------
     def run_coroutine_blocking(self, coro: Coroutine, timeout: Optional[float] = None) -> Any:
-        """Convenience: schedule a coroutine on the backend loop and block until it's done.
+        """Convenience: schedule a coroutine on the Threadmanager loop and block until it's done.
 
         This is safe to call from the main thread.
         """
@@ -343,38 +343,38 @@ if __name__ == "__main__":
     import logging
 
     logging.basicConfig(level=logging.DEBUG)
-    backend = get_instance()
-    backend.start()
+    Threadmanager = get_instance()
+    Threadmanager.start()
 
     # register a callback
     def on_init_done(ok: bool):
         print("initialise_done ->", ok)
 
-    backend.on("initialise_done", on_init_done)
+    Threadmanager.on("initialise_done", on_init_done)
 
     # Example: async initialise task
     async def initialise():
         print("initialise: sleeping 1s")
         await asyncio.sleep(1)
-        backend.emit("initialise_done", True)
+        Threadmanager.emit("initialise_done", True)
         return True
 
     # Schedule initialise and wait for result
-    res = backend.run_coroutine_blocking(initialise(), timeout=5)
+    res = Threadmanager.run_coroutine_blocking(initialise(), timeout=5)
     print("initialise result:", res)
 
     # Example: use token to limit simultaneous blocking tasks
     def blocking_work(n):
-        with backend.token():
+        with Threadmanager.token():
             print(f"Worker {n} acquired token, working...")
             time.sleep(1)
             print(f"Worker {n} done")
 
-    futures = [backend.submit_blocking(blocking_work, i) for i in range(6)]
+    futures = [Threadmanager.submit_blocking(blocking_work, i) for i in range(6)]
 
     # wait for all to finish
     for f in futures:
         f.result()
 
-    backend.shutdown()
-    print("backend stopped")
+    Threadmanager.shutdown()
+    print("Threadmanager stopped")
