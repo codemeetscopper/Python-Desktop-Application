@@ -63,6 +63,14 @@ class ConfigurationManager:
         self._save_to_q_settings(raw)
 
     @LOGGER.log_function(level=logging.DEBUG)
+    def get_all_keys(self):
+        all_keys = []
+        all_keys.extend(list(self.data.configuration.user.keys()))
+        all_keys.extend(list(self.data.configuration.static.keys()))
+        return all_keys
+
+
+    @LOGGER.log_function(level=logging.DEBUG)
     def get_value(self, setting_key: str, as_string: bool = False):
         """Get a user or static setting by key."""
         if not self.data:

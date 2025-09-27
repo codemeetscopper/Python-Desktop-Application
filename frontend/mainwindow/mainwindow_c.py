@@ -22,7 +22,15 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("PySide6 MainWindow Example")
 
-        setting = f"Setting is {self._config.get_value("sample_text_input").value}"
+        setting = "Settings:"
+        for key in self._config.get_all_keys():
+            if hasattr(self._config.get_value(key), 'value'):
+                setting = setting + '\n' + f"   {key} = {self._config.get_value(key).value}"
+            else:
+                setting = setting + f"\n    {key} = {self._config.get_value(key)}"
+
+        # setting = f"Theme is {self._config.get_value("theme").value}\n"\
+        #           f"Accent is {self._config.get_value("accent").value}\n"
         label = QLabel(setting, self)
         layout = QVBoxLayout()
         layout.addWidget(label)
