@@ -7,6 +7,7 @@ from common.logger import Logger
 from common.backendclient import BackendClient
 from common.stylemanager import StyleManager
 from common.threadmanager import ThreadManager
+from common.data import AppData
 
 
 # noinspection PyCompatibility
@@ -21,6 +22,7 @@ class AppContext:
     font: Optional[FontManager] = None
     threader: Optional[ThreadManager] = None
     backend: Optional[BackendClient] = None
+    data:Optional[AppData] = None
 
 # Create a single instance to share across your app
 AppCntxt = AppContext()

@@ -26,13 +26,16 @@ class Splash(QWidget):
         self.ui.version_label.setText(self.version)
 
         logger = Logger()
-        logger.log_updated.connect(self._on_log_updated)
+        # logger.log_updated.connect(self._on_log_updated)
+
+        AppCntxt.data.register_progressbar(self.ui.progress_bar)
+        AppCntxt.data.progress_changed.connect(self.set_progress)
 
         self.setPalette(AppCntxt.styler.get_palette())
         self.setFont(AppCntxt.font.get_font('pc'))
         self.ui.app_name_label.setFont(AppCntxt.font.get_font('h1'))
         self.ui.app_name_label.setStyleSheet(f"color: {AppCntxt.styler.get_colour('accent')}")
-        self.ui.progress_bar.setRange(0, 0)
+        # self.ui.progress_bar.setRange(0, 0)
 
         self.ui.logo_label.setPixmap(AppCntxt.styler.get_pixmap('logo',
                                                                 AppCntxt.styler.get_colour('accent'),
@@ -53,11 +56,11 @@ QProgressBar::chunk {{
 
 
 
-    def set_progress(self, value=-1, status_text=None):
+    def set_progress(self, value=-1, message=None):
         if value != -1:
             self.ui.progress_bar.setValue(value)
-        if status_text:
-            self.ui.status_label.setText(status_text)
+        if message:
+            self.ui.status_label.setText(message)
         QApplication.processEvents()  # Update UI immediately
 
     def _on_log_updated(self, data):

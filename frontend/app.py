@@ -11,7 +11,7 @@ from common.configuration.parser import ConfigurationManager
 from common.fontmanager import FontManager
 from common.logger import Logger
 from common.stylemanager import StyleManager
-from frontend import AppCntxt
+from frontend import AppCntxt, AppData
 from frontend.core.popup.popup_c import Popup
 from frontend.mainwindow.mainwindow_c import MainWindow
 from frontend.splash.splash_c import Splash
@@ -24,7 +24,7 @@ def run():
 
     splash = Splash(AppCntxt.name, f"Version {AppCntxt.version}")
     splash.show()
-    AppCntxt.logger.info("Initialising application...")
+    AppCntxt.data.set_progress(5, "Initialising application...")
     QApplication.processEvents()
     status, error = _initialise_app()
     if status:
@@ -44,6 +44,8 @@ def run():
 def _initialise_context():
     AppCntxt.logger = Logger()
     AppCntxt.threader = threadmanager.get_instance()
+
+    AppCntxt.data = AppData()
 
     AppCntxt.threader.start()
     AppCntxt.settings = ConfigurationManager(AppCntxt.config_path)
@@ -77,6 +79,7 @@ def _initialise_app():
     api_reply = False
     error = None
     fb = AppCntxt.threader.submit_blocking(initialise_backend)
+    AppCntxt.data.set_progress(10, "Connecting to backend...")
     while fb.running():
         # time.sleep(0.01)
         QApplication.processEvents()
@@ -84,15 +87,18 @@ def _initialise_app():
         AppCntxt.logger.info("Backend initialisation is success")
         api_reply = True
     else:
-        AppCntxt.logger.critical(f"Backend init failure: error: {fb.result()[1]}")
         error = fb.result()[1]
+        AppCntxt.logger.critical(f"Backend init failure: error: {error}")
+        if 'WinError 10061' in error:
+            AppCntxt.logger.critical(message:=f"Check if the backend is running. Address: {AppCntxt.backend.host}:{AppCntxt.backend.port}")
+            error = error + '\n' + message
     # _backend_worker_demo()
     return api_reply, error
 
 def _on_app_closing():
     splash = Splash(AppCntxt.name, f"Version {AppCntxt.version}")
     splash.show()
-    AppCntxt.logger.info("Cleaning up...")
+    AppData().set_progress(value=20, message=f"({20}%)  Cleaning up...")
     def cleanup():
         with AppCntxt.threader.token():
             time.sleep(3)
@@ -100,13 +106,16 @@ def _on_app_closing():
     fb = AppCntxt.threader.submit_blocking(cleanup)
     time.sleep(0.1)
     while fb.running():
-        time.sleep(0.01)
+        time.sleep(0.001)
         QApplication.processEvents()
-    splash.close()
+
+    AppData().set_progress(value=95, message=f"({95}%)  Cleaning up...")
     fb.result()
     QApplication.processEvents()
+
     if AppCntxt.threader is not None:
         AppCntxt.threader.shutdown()
+    splash.close()
     AppCntxt.logger.info("Goodbye!")
     sys.exit(0)
 
