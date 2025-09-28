@@ -38,16 +38,16 @@ class Splash(QWidget):
         # self.ui.progress_bar.setRange(0, 0)
 
         self.ui.logo_label.setPixmap(AppCntxt.styler.get_pixmap('logo',
-                                                                AppCntxt.styler.get_colour('accent'),
+                                                                AppCntxt.styler.get_colour('support'),
                                                                 100))
         style = f"""
 QProgressBar {{
     background-color: {AppCntxt.styler.get_colour('bg1')};
-    color: {AppCntxt.styler.get_colour('accent')}; /* text color */
+    color: {AppCntxt.styler.get_colour('neutral')}; /* text color */
 }}
 
 QProgressBar::chunk {{
-    background-color: {AppCntxt.styler.get_colour('accent')};
+    background-color: {AppCntxt.styler.get_colour('neutral')};
     border-radius: 5px;
 }}
 """

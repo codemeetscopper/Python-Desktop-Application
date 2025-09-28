@@ -19,7 +19,7 @@
             },
             "support": {
                 "name": "Support Colour",
-                "value": "#b52b2b",
+                "value": "#0c4d35",
                 "values": [
                     "#a52b2b",
                     "#b52b2b",
@@ -35,7 +35,7 @@
             },
             "neutral": {
                 "name": "Neutral Colour",
-                "value": "#b52b2b",
+                "value": "#7d8be0",
                 "values": [
                     "#a52b2b",
                     "#b52b2b",
