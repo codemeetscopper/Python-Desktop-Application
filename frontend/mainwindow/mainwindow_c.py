@@ -24,10 +24,10 @@ class TitleBar(QWidget):
 
         # icon + title
         self.icon = QLabel()
-        self.icon.setFixedSize(self._icon_size, self._icon_size)
+        self.icon.setFixedSize(24, 24)
         self.icon.setPixmap(AppCntxt.styler.get_pixmap('logo',
                                                        AppCntxt.styler.get_colour('accent'),
-                                                       self._icon_size))
+                                                       24))
 
         self.btn_min = QPushButton("")
         self.btn_max = QPushButton("")
