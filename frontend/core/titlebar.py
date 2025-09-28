@@ -368,19 +368,19 @@ class FramelessWindow(QWidget):
         super().keyPressEvent(event)
 
 
-def main():
-    import sys
-
-    app = QApplication(sys.argv)
-    # High DPI scaling
-    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
-
-    win = FramelessWindow()
-    win.resize(900, 520)
-    win.show()
-    sys.exit(app.exec())
-
-
-if __name__ == "__main__":
-    main()
+# def main():
+#     import sys
+#
+#     app = QApplication(sys.argv)
+#     # High DPI scaling
+#     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+#     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+#
+#     win = FramelessWindow()
+#     win.resize(900, 520)
+#     win.show()
+#     sys.exit(app.exec())
+#
+#
+# if __name__ == "__main__":
+#     main()
