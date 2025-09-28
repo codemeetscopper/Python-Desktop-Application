@@ -4,25 +4,28 @@ import json
 import inspect
 
 from common.logger import Logger
+from common.backendclient.aes import AESCipher
 
 
 class BackendServer:
     """
-    A TCP server to expose SDK functions/classes to GUI clients.
+    A TCP server to expose SDK functions/classes to GUI clients,
+    with AES-GCM encryption.
     """
 
-    def __init__(self, host="127.0.0.1", port=5000):
+    def __init__(self, host="127.0.0.1", port=5000, secret_key=None):
         self.host = host
         self.port = port
         self._server_socket = None
         self._running = False
         self._functions = {}
         self._logger = Logger()
+        if secret_key is None:
+            raise ValueError("Secret key required for AES encryption")
+        self._cipher = AESCipher(secret_key)
 
     def register_function(self, func, name=None):
-        """
-        Register a standalone function.
-        """
+        """Register a standalone function."""
         self._functions[name or func.__name__] = func
 
     def register_instance(self, instance, prefix=""):
@@ -44,7 +47,8 @@ class BackendServer:
                     if not data:
                         break
 
-                    request = json.loads(data)
+                    # 🔐 Decrypt request
+                    request = self._cipher.decrypt(data)
                     func_name = request.get("function")
                     args = request.get("args", [])
                     kwargs = request.get("kwargs", {})
@@ -61,12 +65,17 @@ class BackendServer:
                             "status": "error",
                             "message": f"Unknown function '{func_name}'",
                         }
+
                     self._logger.debug(f"Backend server exec response: {response}")
-                    conn.sendall(json.dumps(response).encode("utf-8"))
+
+                    # 🔐 Encrypt response
+                    enc_response = self._cipher.encrypt(response)
+                    conn.sendall(enc_response.encode("utf-8"))
+
                 except Exception as e:
                     error_msg = {"status": "error", "message": str(e)}
                     try:
-                        conn.sendall(json.dumps(error_msg).encode("utf-8"))
+                        conn.sendall(self._cipher.encrypt(error_msg).encode("utf-8"))
                     except Exception:
                         pass
                     break

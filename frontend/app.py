@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import os
 import sys
 import time
@@ -6,7 +7,7 @@ import time
 from PySide6.QtWidgets import QApplication
 
 from common import threadmanager
-from common.backendclient import BackendClient
+from common.backendclient.backendclient import BackendClient
 from common.configuration.parser import ConfigurationManager
 from common.fontmanager import FontManager
 from common.logger import Logger
@@ -53,7 +54,8 @@ def _initialise_context():
     ip = AppCntxt.settings.get_value('sdk_ip_address')
     port = AppCntxt.settings.get_value('sdk_tcp_port')
     timeout = AppCntxt.settings.get_value('sdk_tcp_timeout')
-    AppCntxt.backend = BackendClient(ip, port, timeout)
+    key = hashlib.sha256(b"sample key").digest()
+    AppCntxt.backend = BackendClient(ip, port, timeout, secret_key = key)
 
     AppCntxt.styler = StyleManager()
     accent = AppCntxt.settings.get_value('accent')

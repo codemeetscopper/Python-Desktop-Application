@@ -1,7 +1,10 @@
+import hashlib
+
 from backend.backendserver import BackendServer
 from backend.sdk import SDK
 
-SERVER = BackendServer()
+SECRET_KEY = hashlib.sha256(b"sample key").digest()
+SERVER = BackendServer(secret_key=SECRET_KEY)
 
 
 def run():
