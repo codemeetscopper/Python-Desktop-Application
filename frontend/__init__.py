@@ -4,7 +4,7 @@ from typing import Optional
 from common.configuration.parser import ConfigurationManager
 from common.fontmanager import FontManager
 from common.logger import Logger
-from common.backendclient.backendclient import BackendClient
+from common.tcpinterface.backendclient import BackendClient
 from common.stylemanager import StyleManager
 from common.threadmanager import ThreadManager
 from common.data import AppData

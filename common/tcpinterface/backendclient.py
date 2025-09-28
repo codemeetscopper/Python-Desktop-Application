@@ -1,6 +1,6 @@
 import socket
 import json
-from common.backendclient.aes import AESCipher
+from common.tcpinterface.aes import AESCipher
 
 
 class BackendClient:

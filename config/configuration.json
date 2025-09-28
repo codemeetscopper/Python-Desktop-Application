@@ -3,7 +3,39 @@
         "user": {
             "accent": {
                 "name": "Accent Colour",
-                "value": "#a52b2b",
+                "value": "#b52b2b",
+                "values": [
+                    "#a52b2b",
+                    "#b52b2b",
+                    "#0c4d35",
+                    "#ccff00",
+                    "#7d8be0"
+                ],
+                "description": "A sample drop down setting.",
+                "type": "dropdown",
+                "accessibility": "user",
+                "group": "Appearance Settings",
+                "icon": "images/size.svg"
+            },
+            "support": {
+                "name": "Support Colour",
+                "value": "#b52b2b",
+                "values": [
+                    "#a52b2b",
+                    "#b52b2b",
+                    "#0c4d35",
+                    "#ccff00",
+                    "#7d8be0"
+                ],
+                "description": "A sample drop down setting.",
+                "type": "dropdown",
+                "accessibility": "user",
+                "group": "Appearance Settings",
+                "icon": "images/size.svg"
+            },
+            "neutral": {
+                "name": "Neutral Colour",
+                "value": "#b52b2b",
                 "values": [
                     "#a52b2b",
                     "#b52b2b",

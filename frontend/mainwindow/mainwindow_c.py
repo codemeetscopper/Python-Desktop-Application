@@ -24,26 +24,16 @@ class TitleBar(QWidget):
 
         # icon + title
         self.icon = QLabel()
-        self.icon.setFixedSize(24, 24)
-        self.icon.setPixmap(AppCntxt.styler.get_pixmap('logo',
-                                                       AppCntxt.styler.get_colour('accent'),
-                                                       24))
+        self.icon.setFixedSize(30, 30)
+        self.icon.setPixmap(AppCntxt.styler.get_pixmap('logo', AppCntxt.styler.get_colour('accent'), 28))
 
         self.btn_min = QPushButton("")
         self.btn_max = QPushButton("")
         self.btn_close = QPushButton("")
 
-        self.btn_min.setIcon(AppCntxt.styler.get_pixmap('minimize',
-                                                       AppCntxt.styler.get_colour('accent_d3'),
-                                                       self._icon_size))
-        self.btn_max.setIcon(AppCntxt.styler.get_pixmap('expand',
-                                                       AppCntxt.styler.get_colour('accent_d3'),
-                                                       self._icon_size))
-        self.btn_close.setIcon(AppCntxt.styler.get_pixmap('close',
-                                                       AppCntxt.styler.get_colour('accent_d3'),
-                                                       self._icon_size))
-
-
+        self.btn_min.setIcon(AppCntxt.styler.get_pixmap('minimize', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
+        self.btn_max.setIcon(AppCntxt.styler.get_pixmap('expand', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
+        self.btn_close.setIcon(AppCntxt.styler.get_pixmap('close', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
 
         self.title = QLabel(parent.windowTitle())
         self.title.setObjectName("TitleLabel")
@@ -55,7 +45,9 @@ class TitleBar(QWidget):
         for b in (self.btn_min, self.btn_max, self.btn_close):
             # b.setFixedSize(46, 28)
             # b.setFlat(True)
-            b.setStyleSheet(f"background-color: transparent; border: none; margin: 3px;")
+            b.setStyleSheet(f"background-color: transparent; border-radius: 2px;"
+                            f"border: 1px solid {AppCntxt.styler.get_colour('accent_l3')}; "
+                            f"margin-right: 4px;")
             b.setIconSize(QSize(self._icon_size, self._icon_size))
 
         self.btn_min.clicked.connect(parent.showMinimized)

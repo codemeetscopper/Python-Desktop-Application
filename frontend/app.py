@@ -7,7 +7,7 @@ import time
 from PySide6.QtWidgets import QApplication
 
 from common import threadmanager
-from common.backendclient.backendclient import BackendClient
+from common.tcpinterface.backendclient import BackendClient
 from common.configuration.parser import ConfigurationManager
 from common.fontmanager import FontManager
 from common.logger import Logger
@@ -59,8 +59,10 @@ def _initialise_context():
 
     AppCntxt.styler = StyleManager()
     accent = AppCntxt.settings.get_value('accent')
+    support = AppCntxt.settings.get_value('support')
+    neutral = AppCntxt.settings.get_value('neutral')
     theme = AppCntxt.settings.get_value('theme')
-    AppCntxt.styler.initialise(accent.value, theme.value)
+    AppCntxt.styler.initialise(accent.value, support.value, neutral.value, theme.value)
 
     AppCntxt.font = FontManager()
     AppCntxt.font.load_font(r"frontend/resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h1", 18)
@@ -68,7 +70,6 @@ def _initialise_context():
     AppCntxt.font.load_font(r"frontend/resources/fonts/Roboto-VariableFont_wdth,wght.ttf", "p", 11)
     AppCntxt.font.load_font(r"frontend/resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "pc", 11)
     AppCntxt.font.load_font(r"frontend/resources/fonts/Inconsolata-VariableFont_wdth,wght.ttf", "log", 11)
-
     QApplication.processEvents()
 
 def _initialise_app():

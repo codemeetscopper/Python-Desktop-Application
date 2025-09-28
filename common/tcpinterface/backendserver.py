@@ -4,7 +4,7 @@ import json
 import inspect
 
 from common.logger import Logger
-from common.backendclient.aes import AESCipher
+from common.tcpinterface.aes import AESCipher
 
 
 class BackendServer:

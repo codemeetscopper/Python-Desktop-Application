@@ -35,54 +35,61 @@ class StyleManager:
 
     # ---- Public API ----------------------------------------------------------
     @classmethod
-    def initialise(cls, color_hex: str, theme: str = 'light') -> bool:
+    def initialise(
+            cls,
+            accent_hex: str,
+            support_hex: str = "#FF9800",
+            neutral_hex: str = "#4CAF50",
+            theme: str = "light"
+    ) -> bool:
         """
-        Initialize the style manager with a base (accent) color in hex (#RRGGBB).
-        Returns True on success, False on failure.
-
-        This computes:
-          - Accent tiers: accent, accent_l1..l3, accent_d1..d3
-          - Background & foreground tiers based on inferred theme:
-                light:  bg -> #F7F7F7; bg1, bg2 are lighter; fg is dark text
-                dark:   bg -> #121212; bg1, bg2 are lighter (elevated); fg is light text
+        Initialize the style manager with 3 base colors (accent, support, neutral).
+        Each gets light/dark tiers (l1..l3, d1..d3).
         """
         try:
-            base = cls._to_qcolor(color_hex)  # raises if invalid
+            # Convert to QColor (raises if invalid)
+            accent = cls._to_qcolor(accent_hex)
+            support = cls._to_qcolor(support_hex)
+            neutral = cls._to_qcolor(neutral_hex)
+
             cls._resolved_mode = theme
 
             # Helpers
             white = QColor(255, 255, 255)
             black = QColor(0, 0, 0)
-            lighten = lambda c, t: cls._blend(c, white, t)   # t in [0,1]
-            darken = lambda c, t: cls._blend(c, black, t)   # t in [0,1]
+            lighten = lambda c, t: cls._blend(c, white, t)  # t in [0,1]
+            darken = lambda c, t: cls._blend(c, black, t)  # t in [0,1]
 
-            # Accent variants (progressive)
-            accent = base
-            colours = {
-                "accent": accent,
-                "accent_l1": lighten(accent, 0.15),
-                "accent_l2": lighten(accent, 0.30),
-                "accent_l3": lighten(accent, 0.45),
-                "accent_d1": darken(accent, 0.15),
-                "accent_d2": darken(accent, 0.30),
-                "accent_d3": darken(accent, 0.45),
-            }
+            def make_tiers(base: QColor, name: str) -> dict:
+                """Generate lighter/darker variants for a base colour."""
+                return {
+                    f"{name}": base,
+                    f"{name}_l1": lighten(base, 0.15),
+                    f"{name}_l2": lighten(base, 0.30),
+                    f"{name}_l3": lighten(base, 0.45),
+                    f"{name}_d1": darken(base, 0.15),
+                    f"{name}_d2": darken(base, 0.30),
+                    f"{name}_d3": darken(base, 0.45),
+                }
 
-            # Background/Foreground based on auto theme
+            # Build colour dictionary
+            colours = {}
+            colours.update(make_tiers(accent, "accent"))
+            colours.update(make_tiers(support, "support"))
+            colours.update(make_tiers(neutral, "neutral"))
+
+            # Background/Foreground based on theme
             if cls._resolved_mode == "dark":
-                # Dark surfaces + light text (with small elevation steps)
-                bg = QColor(18, 18, 18)               # #121212
-                bg1 = lighten(bg, 0.08)                # +elevation
-                bg2 = lighten(bg, 0.16)                # +more elevation
-                fg = QColor(237, 237, 237)            # light text
+                bg = QColor(18, 18, 18)  # #121212
+                bg1 = lighten(bg, 0.08)
+                bg2 = lighten(bg, 0.16)
+                fg = QColor(237, 237, 237)  # light text
             else:
-                # Light surfaces + dark text (bg1/bg2 lighter than bg)
-                bg = QColor(247, 247, 247)            # ~#F7F7F7
+                bg = QColor(247, 247, 247)  # ~#F7F7F7
                 bg1 = lighten(bg, 0.06)
                 bg2 = lighten(bg, 0.12)
-                fg = QColor(17, 17, 17)               # ~#111111
+                fg = QColor(17, 17, 17)  # ~#111111
 
-            # Secondary/tertiary foreground (muted)
             fg1 = cls._blend(fg, bg, 0.35)
             fg2 = cls._blend(fg, bg, 0.60)
 
@@ -97,8 +104,9 @@ class StyleManager:
             cls._initialised = True
             return True
 
-        except Exception:
-            # Reset on any failure
+        except Exception as ex:
+            print(ex)
+            return False
             cls._initialised = False
             cls._colours = {}
             cls._palette = None
