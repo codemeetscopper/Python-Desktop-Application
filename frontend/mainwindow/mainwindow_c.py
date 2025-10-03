@@ -46,7 +46,7 @@ class TitleBar(QWidget):
             # b.setFixedSize(46, 28)
             # b.setFlat(True)
             b.setStyleSheet(f"background-color: transparent; border-radius: 2px;"
-                            f"border: 1px solid {AppCntxt.styler.get_colour('accent_l3')}; "
+                            f"border: 1px solid {AppCntxt.styler.get_colour('bg1')}; "
                             f"margin-right: 4px;")
             b.setIconSize(QSize(self._icon_size, self._icon_size))
 

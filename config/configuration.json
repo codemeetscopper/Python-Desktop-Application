@@ -19,13 +19,13 @@
             },
             "support": {
                 "name": "Support Colour",
-                "value": "#0c4d35",
+                "value": "#189bcc",
                 "values": [
                     "#a52b2b",
                     "#b52b2b",
                     "#0c4d35",
                     "#ccff00",
-                    "#7d8be0"
+                    "#189bcc"
                 ],
                 "description": "A sample drop down setting.",
                 "type": "dropdown",
