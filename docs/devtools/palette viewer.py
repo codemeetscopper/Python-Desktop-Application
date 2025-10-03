@@ -28,7 +28,7 @@ class ColourViewer(QMainWindow):
         self.resize(400, 600)
 
         # Initialize StyleManager with some sample colors
-        config = ConfigurationManager(r"D:\Development\Python\Python-Desktop-Application\config\configuration.json")
+        config = ConfigurationManager(r"/config/configuration.json")
         accent = config.get_value('accent')
         support = config.get_value('support')
         neutral = config.get_value('neutral')
