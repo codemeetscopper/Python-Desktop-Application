@@ -1,13 +1,13 @@
-import sys
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QScrollArea, QFileDialog, QComboBox, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QGroupBox, QFormLayout
+    QApplication, QWidget, QMainWindow, QFileDialog, QVBoxLayout, QHBoxLayout,
+    QLabel, QComboBox, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QGroupBox, QFormLayout, QScrollArea
 )
 from PySide6.QtGui import QColor, QPainter
-from PySide6.QtCore import Qt
+
 from common.appearance.stylemanager import StyleManager
 from common.configuration.parser import ConfigurationManager
-
+from common.tester.tester import Ui_TesterWindow
 
 class ColourSwatch(QWidget):
     def __init__(self, color: QColor, tag: str, value: str, parent=None):
@@ -30,30 +30,26 @@ class ColourSwatch(QWidget):
         text = f"{self._tag}: {self._value}"
         painter.drawText(self.rect(), Qt.AlignCenter, text)
 
-
-class ColourViewer(QMainWindow):
+class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("StyleManager Colour Keys")
-        self.resize(1000, 800)
-        self.config = None
-        self.combos = {}
-        self.lineedits = {}
-        self.init_ui()
-
-    def init_ui(self):
-        container = QWidget()
-        self.layout = QHBoxLayout(container)
+        self.ui = Ui_TesterWindow()
+        self.ui.setupUi(self)
+        self.setWindowTitle("Common Tester")
 
         file_path, _ = QFileDialog.getOpenFileName(self, "Select config file.", r"../../config")
-        self.config = ConfigurationManager(file_path)
+        self._config = ConfigurationManager(file_path)
+        self.combos = {}
+        self.lineedits = {}
+
+        self._init_ui()
         self.reload_palette()
 
-        container.setLayout(self.layout)
-        scroll = QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(container)
-        self.setCentralWidget(scroll)
+    def _init_ui(self):
+        container = QWidget()
+        self.layout = QHBoxLayout(container)
+        self.setCentralWidget(container)
+        self.container = container
 
     def reload_palette(self):
         # Clear layout
@@ -65,10 +61,10 @@ class ColourViewer(QMainWindow):
             elif item.layout():
                 self.clear_layout(item.layout())
 
-        accent = self.config.get_value('accent')
-        support = self.config.get_value('support')
-        neutral = self.config.get_value('neutral')
-        theme = self.config.get_value('theme')
+        accent = self._config.get_value('accent')
+        support = self._config.get_value('support')
+        neutral = self._config.get_value('neutral')
+        theme = self._config.get_value('theme')
 
         # --- Settings Section ---
         settings_group = QGroupBox("Settings")
@@ -77,7 +73,7 @@ class ColourViewer(QMainWindow):
         self.lineedits = {}
 
         # User settings
-        user_settings = self.config.data.configuration.user
+        user_settings = self._config.data.configuration.user
         for key, setting in user_settings.items():
             label = QLabel(setting.name)
             if setting.type == "dropdown":
@@ -94,14 +90,13 @@ class ColourViewer(QMainWindow):
                 settings_layout.addRow(label, lineedit)
                 self.lineedits[key] = lineedit
             else:
-                # Fallback: show as text
                 lineedit = QLineEdit()
                 lineedit.setText(str(setting.value))
                 lineedit.setReadOnly(True)
                 settings_layout.addRow(label, lineedit)
 
         # Static settings (always as read-only textboxes)
-        static_settings = self.config.data.configuration.static
+        static_settings = self._config.data.configuration.static
         for key, value in static_settings.items():
             label = QLabel(key)
             lineedit = QLineEdit()
@@ -131,8 +126,6 @@ class ColourViewer(QMainWindow):
         palette_group.setLayout(grid)
         self.layout.addWidget(palette_group)
 
-        # self.setStyleSheet(f"background-color:{StyleManager.get_colour('bg')};"
-        #                    f"color:{StyleManager.get_colour('fg')}")
         self.setPalette(StyleManager.get_palette())
 
     def clear_layout(self, layout):
@@ -145,17 +138,19 @@ class ColourViewer(QMainWindow):
                 self.clear_layout(item.layout())
 
     def on_setting_changed(self, key, value):
-        self.config.set_value(key, value)
+        self._config.set_value(key, value)
         self.reload_palette()
 
     def on_text_setting_changed(self, key, lineedit):
         value = lineedit.text()
-        self.config.set_value(key, value)
+        self._config.set_value(key, value)
         self.reload_palette()
 
+def run():
+    app = QApplication([])
+    window = MainWindow()
+    window.show()
+    app.exec()
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    win = ColourViewer()
-    win.show()
-    sys.exit(app.exec())
+    run()

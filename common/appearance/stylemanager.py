@@ -83,18 +83,18 @@ class StyleManager:
 
             # Background/Foreground based on theme
             if cls._resolved_mode == "dark":
-                bg = QColor(18, 18, 18)  # #121212
-                bg1 = lighten(bg, 0.08)
-                bg2 = lighten(bg, 0.16)
-                fg = QColor(237, 237, 237)  # light text
-            else:
-                bg = QColor(247, 247, 247)  # ~#F7F7F7
+                bg = QColor(0, 0, 0)  # #121212
                 bg1 = lighten(bg, 0.06)
                 bg2 = lighten(bg, 0.12)
-                fg = QColor(17, 17, 17)  # ~#111111
+                fg = QColor(255, 255, 255)  # light text
+            else:
+                bg = QColor(255, 255, 255)  # ~#F7F7F7
+                bg1 = darken(bg, 0.09)
+                bg2 = darken(bg, 0.12)
+                fg = QColor(0, 0, 0)  # ~#111111
 
-            fg1 = cls._blend(fg, bg, 0.35)
-            fg2 = cls._blend(fg, bg, 0.60)
+            fg1 = cls._blend(fg, bg, 0.06)
+            fg2 = cls._blend(fg, bg, 0.12)
 
             colours.update({
                 "bg": bg, "bg1": bg1, "bg2": bg2,
