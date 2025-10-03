@@ -46,6 +46,13 @@ class FontManager:
                 'size': size if size else 12  # Default size
             }
 
+    def set_font_size(self, tag: str, size: int):
+        """Sets the size for a given font tag."""
+        if tag in self._font_map:
+            self._font_map[tag]['size'] = size
+        else:
+            raise KeyError(f"Font tag '{tag}' not found.")
+
     def get_font(self, tag: str) -> QFont:
         """
         Returns a QFont object for the given tag.

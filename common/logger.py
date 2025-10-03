@@ -39,16 +39,13 @@ class Logger(QObject):
 
         super().__init__()
         self.name = name
-        self.level = level
         self.logs = Queue()
 
         # Python logging setup
         self._logger = logging.getLogger(name)
-        self._logger.setLevel(level)
         self._logger.propagate = False
 
         console_handler = ColouredConsoleHandler()
-        console_handler.setLevel(level)
         formatter = logging.Formatter(
             "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
         )
@@ -57,7 +54,15 @@ class Logger(QObject):
         if not self._logger.handlers:
             self._logger.addHandler(console_handler)
 
+        self.set_level(level)
         self._initialized = True
+
+    def set_level(self, level):
+        """Sets the logging level for the logger and its handlers."""
+        self.level = level
+        self._logger.setLevel(level)
+        for handler in self._logger.handlers:
+            handler.setLevel(level)
 
     def _store_log(self, level_name: str, msg: str):
         """Store log in queue and emit update signal."""
@@ -65,8 +70,7 @@ class Logger(QObject):
         formatted = f"{timestamp} | {level_name} | {msg}"
         self.logs.put(formatted)
 
-        if level_name != "DEBUG":
-            self.log_updated.emit(msg)
+        self.log_updated.emit(formatted)
         return formatted
 
     # Public logging API (unchanged)

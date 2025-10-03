@@ -1,6 +1,7 @@
 import json
 import logging
 from dataclasses import asdict
+from typing import Optional
 
 from PySide6.QtCore import QSettings
 from PySide6.QtGui import QColor
@@ -14,6 +15,7 @@ LOGGER = Logger()
 
 class ConfigurationManager:
     _instance = None
+    _initialized = False
 
     def __new__(cls, *args, **kwargs):
         """Singleton pattern."""
@@ -22,12 +24,11 @@ class ConfigurationManager:
         return cls._instance
 
     def __init__(self, json_path: str = "", org: str = "Default Organisation", app: str = "Default Application Name"):
+        if self._initialized and json_path == "":
+            return
 
-        if json_path == "":
-            if hasattr(self, "_initialized") and self._initialized:
-                return
-            else:
-                raise ConfigurationJsonNotProvided()
+        if not json_path:
+            raise ConfigurationJsonNotProvided()
 
         self._initialized = True
 
@@ -85,7 +86,7 @@ class ConfigurationManager:
         if setting_obj is None:
             raise SettingNotFoundError(setting_key)
 
-        value = getattr(setting_obj, 'Value', setting_obj)
+        value = getattr(setting_obj, 'value', setting_obj)
         return self._serialize(value) if as_string else value
 
     @LOGGER.log_function(level=logging.DEBUG)
@@ -105,6 +106,28 @@ class ConfigurationManager:
         q_settings_key = f"configuration/user/{setting_key}/value"
         self.settings.setValue(q_settings_key, self._serialize(value))
         self.settings.sync()
+
+    @LOGGER.log_function(level=logging.DEBUG)
+    def add_user_setting(self, key: str, setting_item: SettingItem):
+        """Adds a new user setting."""
+        if not self.data:
+            raise ConfigurationNotLoadedError()
+        self.data.configuration.user[key] = setting_item
+        self.save()
+
+    @LOGGER.log_function(level=logging.DEBUG)
+    def delete_user_setting(self, key: str):
+        """Deletes a user setting."""
+        if not self.data:
+            raise ConfigurationNotLoadedError()
+        if key in self.data.configuration.user:
+            del self.data.configuration.user[key]
+            # Remove from QSettings as well
+            self.settings.remove(f"configuration/user/{key}")
+            self.settings.sync()
+            self.save()
+        else:
+            raise SettingNotFoundError(key)
 
     @LOGGER.log_function(level=logging.DEBUG)
     def save(self):

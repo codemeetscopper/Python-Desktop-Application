@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'testerBbRIkg.ui'
+## Form generated from reading UI file 'testerUOouBh.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.2
 ##
@@ -17,7 +17,8 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
 from PySide6.QtWidgets import (QApplication, QMainWindow, QMenu, QMenuBar,
-    QSizePolicy, QStatusBar, QWidget)
+    QSizePolicy, QStatusBar, QTabWidget, QVBoxLayout,
+    QWidget)
 
 class Ui_TesterWindow(object):
     def setupUi(self, TesterWindow):
@@ -30,6 +31,13 @@ class Ui_TesterWindow(object):
         self.actionAbout.setObjectName(u"actionAbout")
         self.centralwidget = QWidget(TesterWindow)
         self.centralwidget.setObjectName(u"centralwidget")
+        self.verticalLayout = QVBoxLayout(self.centralwidget)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.main_tw = QTabWidget(self.centralwidget)
+        self.main_tw.setObjectName(u"main_tw")
+
+        self.verticalLayout.addWidget(self.main_tw)
+
         TesterWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(TesterWindow)
         self.menubar.setObjectName(u"menubar")

@@ -62,14 +62,14 @@ def _initialise_context():
     support = AppCntxt.settings.get_value('support')
     neutral = AppCntxt.settings.get_value('neutral')
     theme = AppCntxt.settings.get_value('theme')
-    AppCntxt.styler.initialise(accent.value, support.value, neutral.value, theme.value)
+    AppCntxt.styler.initialise(accent, support, neutral, theme)
 
     AppCntxt.font = FontManager()
-    AppCntxt.font.load_font(r"frontend/resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h1", 18)
-    AppCntxt.font.load_font(r"frontend/resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h2", 14)
-    AppCntxt.font.load_font(r"frontend/resources/fonts/Roboto-VariableFont_wdth,wght.ttf", "p", 11)
-    AppCntxt.font.load_font(r"frontend/resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "pc", 11)
-    AppCntxt.font.load_font(r"frontend/resources/fonts/Inconsolata-VariableFont_wdth,wght.ttf", "log", 11)
+    AppCntxt.font.load_font(r"resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h1", 18)
+    AppCntxt.font.load_font(r"resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h2", 14)
+    AppCntxt.font.load_font(r"resources/fonts/Roboto-VariableFont_wdth,wght.ttf", "p", 11)
+    AppCntxt.font.load_font(r"resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "pc", 11)
+    AppCntxt.font.load_font(r"resources/fonts/Inconsolata-VariableFont_wdth,wght.ttf", "log", 11)
     QApplication.processEvents()
 
 def _initialise_app():

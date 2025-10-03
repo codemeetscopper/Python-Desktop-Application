@@ -123,7 +123,7 @@ class MainWindow(QMainWindow):
 
     def _on_log_updated(self, log_text):
         if 'DEBUG' not in log_text:
-            self.ui.statusbar.showMessage(log_text)
+            self.ui.statusbar.showMessage(log_text.split('| ')[-1])
 
     def closeEvent(self, event):
         self.destroy()
