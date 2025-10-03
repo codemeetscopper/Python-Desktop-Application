@@ -10,6 +10,8 @@ from PySide6.QtGui import QColor, QPalette, QPixmap, QPainter
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QApplication
 
+from common.appearance.iconmanager import IconManager
+
 ColourLike = Union[str, QColor]
 
 
@@ -29,6 +31,7 @@ class StyleManager:
 
     # ---- Singleton state -----------------------------------------------------
     _initialised: bool = False
+    _iconManager = IconManager()
     _colours: Dict[str, QColor] = {}
     _palette: Optional[QPalette] = None
     _resolved_mode: str = "light"  # "light" | "dark"
@@ -146,33 +149,9 @@ class StyleManager:
     def is_initialised(cls) -> bool:
         return cls._initialised
 
-    @staticmethod
-    def get_pixmap(image_name: str, color: str = "#FFFFFF", size: int = 15) -> QPixmap:
-        images_path = "frontend/resources/images/"
-        file_path = os.path.join(images_path, f"{image_name}.svg")
-
-        if not os.path.exists(file_path):
-            return QPixmap()
-
-        # Read and modify SVG content
-        with open(file_path, "r", encoding="utf-8") as f:
-            svg_content = f.read()
-
-        # Replace all fill colors with the desired one
-        svg_content = svg_content.replace('fill="#000000"', f'fill="{color}"')
-
-        # Render the modified SVG
-        svg_bytes = QByteArray(svg_content.encode("utf-8"))
-        svg_renderer = QSvgRenderer(svg_bytes)
-
-        pixmap = QPixmap(size, size)
-        pixmap.fill(PySide6.QtCore.Qt.transparent)
-
-        painter = QPainter(pixmap)
-        svg_renderer.render(painter)
-        painter.end()
-
-        return pixmap
+    @classmethod
+    def get_pixmap(cls, image_name: str, color: str = "#FFFFFF", size: int = 15) -> QPixmap:
+        return cls._iconManager.get_pixmap(image_name, color, size)
 
     @classmethod
     def mode(cls) -> str:

@@ -8,7 +8,7 @@ from common.configuration.parser import ConfigurationManager
 from common.logger import Logger
 from frontend import AppCntxt
 from frontend.mainwindow.mainwindow import Ui_MainWindow
-from frontend.mainwindow.titlebar import CustomTitleBar
+from frontend.core.titlebar import CustomTitleBar
 
 
 class MainWindow(QMainWindow):

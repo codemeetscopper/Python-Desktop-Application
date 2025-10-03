@@ -1,6 +1,6 @@
-from PySide6.QtWidgets import QApplication, QWidget
 from PySide6.QtCore import Qt
-from common.logger import Logger
+from PySide6.QtWidgets import QApplication, QWidget
+
 from frontend import AppCntxt
 from frontend.splash.splash import Ui_Splash
 
