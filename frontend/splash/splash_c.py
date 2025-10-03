@@ -1,12 +1,9 @@
-import sys
 from PySide6.QtWidgets import (
-    QApplication, QWidget, QLabel, QVBoxLayout, QProgressBar
+    QApplication, QWidget
 )
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QPixmap, QFont
+from PySide6.QtCore import Qt
 
 from common.logger import Logger
-from common.stylemanager import StyleManager
 from frontend import AppCntxt
 from frontend.splash.splash import Ui_Splash
 

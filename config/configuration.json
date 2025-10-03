@@ -3,7 +3,7 @@
         "user": {
             "accent": {
                 "name": "Accent Colour",
-                "value": "#b52b2b",
+                "value": "#0c4d35",
                 "values": [
                     "#a52b2b",
                     "#b52b2b",
@@ -19,7 +19,7 @@
             },
             "support": {
                 "name": "Support Colour",
-                "value": "#189bcc",
+                "value": "#bb1133",
                 "values": [
                     "#a52b2b",
                     "#b52b2b",

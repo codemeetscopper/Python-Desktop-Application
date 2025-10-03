@@ -1,6 +1,5 @@
 import asyncio
 import hashlib
-import os
 import sys
 import time
 
@@ -9,9 +8,9 @@ from PySide6.QtWidgets import QApplication
 from common import threadmanager
 from common.tcpinterface.backendclient import BackendClient
 from common.configuration.parser import ConfigurationManager
-from common.fontmanager import FontManager
+from common.appearance.fontmanager import FontManager
 from common.logger import Logger
-from common.stylemanager import StyleManager
+from common.appearance.stylemanager import StyleManager
 from frontend import AppCntxt, AppData
 from frontend.core.popup.popup_c import Popup
 from frontend.mainwindow.mainwindow_c import MainWindow
@@ -104,7 +103,7 @@ def _on_app_closing():
     AppData().set_progress(value=20, message=f"({20}%)  Cleaning up...")
     def cleanup():
         with AppCntxt.threader.token():
-            time.sleep(3)
+            time.sleep(1)
         return True
     fb = AppCntxt.threader.submit_blocking(cleanup)
     time.sleep(0.1)
