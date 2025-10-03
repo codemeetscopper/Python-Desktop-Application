@@ -9,6 +9,6 @@ class SDK:
         logger = Logger()
         for x in range(0, 110, 10):
             AppData().set_progress(value=x, message=f"({x}%)  Initialising backend...")
-            time.sleep(1)
+            time.sleep(0.05)
         # raise Exception("backend init error 101")
         return True
