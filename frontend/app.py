@@ -53,6 +53,7 @@ def _initialise_context():
     ip = AppCntxt.settings.get_value('sdk_ip_address')
     port = AppCntxt.settings.get_value('sdk_tcp_port')
     timeout = AppCntxt.settings.get_value('sdk_tcp_timeout')
+    # key = AppCntxt.settings.get_value('sdk_aes_key')
     key = hashlib.sha256(b"sample key").digest()
     AppCntxt.backend = BackendClient(ip, port, timeout, secret_key = key)
 
