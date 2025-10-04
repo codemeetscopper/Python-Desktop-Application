@@ -6,7 +6,7 @@ from PySide6.QtSvg import QSvgRenderer
 
 class IconManager:
     _icon_cache: Dict[str, QPixmap] = {}
-    _images_path: str = "resources/images/"
+    _images_path: str = r"resources/images/meterialicons/"  # Default path
 
     @classmethod
     def get_pixmap(cls, name: str, color: str = "#FFFFFF", size: int = 24) -> QPixmap:

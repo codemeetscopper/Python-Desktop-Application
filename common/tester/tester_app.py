@@ -2,13 +2,13 @@ import os
 import shutil
 import json
 import logging
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QObject, Signal, QThread
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QFileDialog, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QGroupBox, QFormLayout, QScrollArea,
     QSpinBox, QTextEdit, QSplitter, QFrame
 )
-from PySide6.QtGui import QColor, QPainter, QIcon
+from PySide6.QtGui import QColor, QPainter, QIcon, QPixmap
 
 from common.appearance.stylemanager import StyleManager
 from common.configuration.parser import ConfigurationManager, SettingItem
@@ -41,6 +41,28 @@ class ColourSwatch(QWidget):
         text = f"{self._tag}: {self._value}"
         painter.drawText(self.rect(), Qt.AlignCenter, text)
 
+class IconLoaderWorker(QObject):
+    icon_loaded = Signal(int, str, QPixmap)
+    finished = Signal()
+
+    def __init__(self, icon_names, color, size):
+        super().__init__()
+        self.icon_names = icon_names
+        self.color = color
+        self.size = size
+        self._is_running = True
+
+    def stop(self):
+        self._is_running = False
+
+    def run(self):
+        for idx, name in enumerate(self.icon_names):
+            if not self._is_running:
+                break
+            pixmap = IconManager.get_pixmap(name, self.color, self.size)
+            self.icon_loaded.emit(idx, name, pixmap)
+        self.finished.emit()
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -50,6 +72,7 @@ class MainWindow(QMainWindow):
 
         # Main layout setup
         main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.ui.main_tw.setMinimumWidth(800)
         main_splitter.addWidget(self.ui.main_tw)
         self.setCentralWidget(main_splitter)
 
@@ -119,6 +142,7 @@ class MainWindow(QMainWindow):
         logger_layout = QVBoxLayout(logger_group)
 
         self.log_display = QTextEdit()
+        self.log_display.setMaximumWidth(600)
         self.log_display.setReadOnly(True)
         logger_layout.addWidget(self.log_display)
 
@@ -362,7 +386,7 @@ class MainWindow(QMainWindow):
 
     def setup_icon_tab(self):
         # Set path relative to this script's location
-        icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'resources', 'images'))
+        icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'resources', 'images', 'meterialicons'))
         IconManager.set_images_path(icon_path)
 
         # --- Controls ---
@@ -389,6 +413,8 @@ class MainWindow(QMainWindow):
         self.icon_grid_layout = QGridLayout(self.icon_grid_widget)
         scroll.setWidget(self.icon_grid_widget)
         self.icon_layout.addWidget(scroll)
+        self._icon_loader_thread = None
+        self._icon_loader_worker = None
         self.update_icon_display()
 
     def load_new_icons(self):
@@ -407,35 +433,49 @@ class MainWindow(QMainWindow):
         self.update_icon_display()
 
     def update_icon_display(self):
+        # Stop any previous loader thread
+        if hasattr(self, "_icon_loader_worker") and self._icon_loader_worker:
+            self._icon_loader_worker.stop()
+        if hasattr(self, "_icon_loader_thread") and self._icon_loader_thread:
+            self._icon_loader_thread.quit()
+            self._icon_loader_thread.wait()
+
         self.clear_layout(self.icon_grid_layout)
         color_key = self.icon_color_combo.currentText()
-
         if not color_key:
             return
 
         color = StyleManager.get_colour(color_key)
         size = self.icon_size_input.value()
-        cols = 5
-
-        icon_names = IconManager.list_icons()
+        icon_names = sorted(IconManager.list_icons())
         if not icon_names:
             self.icon_grid_layout.addWidget(QLabel("No icons found in the specified path."), 0, 0)
             return
 
-        for idx, name in enumerate(sorted(icon_names)):
-            pixmap = IconManager.get_pixmap(name, color, size)
-            icon_label = QLabel()
-            icon_label.setPixmap(pixmap)
-            name_label = QLabel(name)
-            name_label.setAlignment(Qt.AlignCenter)
+        # Start background thread for icon loading
+        self._icon_loader_worker = IconLoaderWorker(icon_names, color, size)
+        self._icon_loader_thread = QThread()
+        self._icon_loader_worker.moveToThread(self._icon_loader_thread)
+        self._icon_loader_thread.started.connect(self._icon_loader_worker.run)
+        self._icon_loader_worker.icon_loaded.connect(self.add_icon_to_grid)
+        self._icon_loader_worker.finished.connect(self._icon_loader_thread.quit)
+        self._icon_loader_worker.finished.connect(self._icon_loader_worker.deleteLater)
+        self._icon_loader_thread.finished.connect(self._icon_loader_thread.deleteLater)
+        self._icon_loader_thread.start()
 
-            cell_widget = QWidget()
-            cell_layout = QVBoxLayout(cell_widget)
-            cell_layout.addWidget(icon_label, alignment=Qt.AlignCenter)
-            cell_layout.addWidget(name_label)
+    def add_icon_to_grid(self, idx, name, pixmap):
+        cols = 5
+        row, col = divmod(idx, cols)
+        icon_label = QLabel()
+        icon_label.setPixmap(pixmap)
+        name_label = QLabel(name)
+        name_label.setAlignment(Qt.AlignCenter)
 
-            row, col = divmod(idx, cols)
-            self.icon_grid_layout.addWidget(cell_widget, row, col)
+        cell_widget = QWidget()
+        cell_layout = QVBoxLayout(cell_widget)
+        cell_layout.addWidget(icon_label, alignment=Qt.AlignCenter)
+        cell_layout.addWidget(name_label)
+        self.icon_grid_layout.addWidget(cell_widget, row, col)
 
     def reload_ui(self):
         # Clear layouts
