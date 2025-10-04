@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QLabel, QComboBox, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QGroupBox, QFormLayout, QScrollArea,
     QSpinBox, QTextEdit, QSplitter, QFrame
 )
-from PySide6.QtGui import QColor, QPainter, QIcon, QPixmap
+from PySide6.QtGui import QColor, QPainter, QIcon, QPixmap, QFont
 
 from common.appearance.stylemanager import StyleManager
 from common.configuration.parser import ConfigurationManager, SettingItem
@@ -399,6 +399,8 @@ class MainWindow(QMainWindow):
         load_icon_btn.clicked.connect(self.load_new_icons)
 
         self.icon_color_combo.currentTextChanged.connect(self.update_icon_display)
+
+
         self.icon_size_input.valueChanged.connect(self.update_icon_display)
 
         controls_layout.addRow("Color:", self.icon_color_combo)
@@ -412,6 +414,7 @@ class MainWindow(QMainWindow):
         self.icon_grid_widget = QWidget()
         self.icon_grid_layout = QGridLayout(self.icon_grid_widget)
         scroll.setWidget(self.icon_grid_widget)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.icon_layout.addWidget(scroll)
         self._icon_loader_thread = None
         self._icon_loader_worker = None
@@ -433,13 +436,27 @@ class MainWindow(QMainWindow):
         self.update_icon_display()
 
     def update_icon_display(self):
-        # Stop any previous loader thread
-        if hasattr(self, "_icon_loader_worker") and self._icon_loader_worker:
-            self._icon_loader_worker.stop()
-        if hasattr(self, "_icon_loader_thread") and self._icon_loader_thread:
-            self._icon_loader_thread.quit()
-            self._icon_loader_thread.wait()
+        # --- Stop and safely clean up any previous thread ---
+        if getattr(self, "_icon_loader_worker", None):
+            try:
+                self._icon_loader_worker.stop()
+            except RuntimeError:
+                pass
 
+        if getattr(self, "_icon_loader_thread", None):
+            try:
+                if self._icon_loader_thread.isRunning():
+                    self._icon_loader_thread.quit()
+                    self._icon_loader_thread.wait()
+            except RuntimeError:
+                # Thread object was already deleted
+                pass
+
+            # Reset references to avoid reusing deleted objects
+            self._icon_loader_thread = None
+            self._icon_loader_worker = None
+
+        # --- Now rebuild icons ---
         self.clear_layout(self.icon_grid_layout)
         color_key = self.icon_color_combo.currentText()
         if not color_key:
@@ -452,7 +469,7 @@ class MainWindow(QMainWindow):
             self.icon_grid_layout.addWidget(QLabel("No icons found in the specified path."), 0, 0)
             return
 
-        # Start background thread for icon loading
+        # --- Start new background thread ---
         self._icon_loader_worker = IconLoaderWorker(icon_names, color, size)
         self._icon_loader_thread = QThread()
         self._icon_loader_worker.moveToThread(self._icon_loader_thread)
@@ -467,14 +484,20 @@ class MainWindow(QMainWindow):
         cols = 5
         row, col = divmod(idx, cols)
         icon_label = QLabel()
+        icon_label.setWordWrap(True)
         icon_label.setPixmap(pixmap)
         name_label = QLabel(name)
+        name_label.setText(f'<div style="white-space: normal; word-wrap: break-word;">{name}</div>')
+        name_label.setWordWrap(True)
         name_label.setAlignment(Qt.AlignCenter)
 
         cell_widget = QWidget()
+        cell_widget.setMaximumWidth(200)
+        cell_widget.setMaximumHeight(300)
         cell_layout = QVBoxLayout(cell_widget)
         cell_layout.addWidget(icon_label, alignment=Qt.AlignCenter)
         cell_layout.addWidget(name_label)
+        cell_layout.setContentsMargins(0, 0, 0, 0)
         self.icon_grid_layout.addWidget(cell_widget, row, col)
 
     def reload_ui(self):
@@ -602,8 +625,8 @@ class MainWindow(QMainWindow):
         self.icon_color_combo.clear()
         color_keys = sorted(StyleManager._colours.keys())
         self.icon_color_combo.addItems(color_keys)
-        if 'fg' in color_keys:
-            self.icon_color_combo.setCurrentText('fg')
+        if 'accent' in color_keys:
+            self.icon_color_combo.setCurrentText('accent')
         self.icon_color_combo.blockSignals(False)
 
         self.setPalette(StyleManager.get_palette())

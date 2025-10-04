@@ -1,44 +1,50 @@
 import os
-from typing import Optional, Dict, List
+import re
+from typing import Dict, List
 from PySide6.QtCore import QByteArray, Qt
-from PySide6.QtGui import QPixmap, QPainter
+from PySide6.QtGui import QPixmap, QPainter, QColor
 from PySide6.QtSvg import QSvgRenderer
+
 
 class IconManager:
     _icon_cache: Dict[str, QPixmap] = {}
-    _images_path: str = r"resources/images/meterialicons/"  # Default path
+    _images_path: str = r"resources/images/meterialicons/"
 
     @classmethod
     def get_pixmap(cls, name: str, color: str = "#FFFFFF", size: int = 24) -> QPixmap:
         """
-        Get a QPixmap for a given SVG icon name.
-        The name should be the filename without the .svg extension.
+        Load an SVG icon and apply a color tint (affects only non-transparent parts).
         """
-        cache_key = f"{name}|{color}|{size}"
+        cache_key = f"{name}|{color.lower()}|{size}"
         if cache_key in cls._icon_cache:
             return QPixmap(cls._icon_cache[cache_key])
 
         file_path = os.path.join(cls._images_path, f"{name}.svg")
         if not os.path.exists(file_path):
-            print(f"Icon not found at {file_path}")
+            print(f"[IconManager] Icon not found: {file_path}")
             return QPixmap()
 
-        with open(file_path, "r", encoding="utf-8") as f:
-            svg_content = f.read()
-        # A simple way to replace fill color. Might not work for all SVGs.
-        svg_content = svg_content.replace('fill="#000000"', f'fill="{color}"')
+        # --- Render the SVG to a transparent pixmap ---
+        svg_renderer = QSvgRenderer(file_path)
+        base_pixmap = QPixmap(size, size)
+        base_pixmap.fill(Qt.transparent)
 
-        svg_bytes = QByteArray(svg_content.encode("utf-8"))
-        svg_renderer = QSvgRenderer(svg_bytes)
-
-        pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.transparent)
-        painter = QPainter(pixmap)
+        painter = QPainter(base_pixmap)
         svg_renderer.render(painter)
         painter.end()
 
-        cls._icon_cache[cache_key] = QPixmap(pixmap)
-        return pixmap
+        # --- Apply the desired color only to non-transparent pixels ---
+        tinted = QPixmap(size, size)
+        tinted.fill(Qt.transparent)
+
+        painter = QPainter(tinted)
+        painter.drawPixmap(0, 0, base_pixmap)
+        painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+        painter.fillRect(tinted.rect(), QColor(color))
+        painter.end()
+
+        cls._icon_cache[cache_key] = QPixmap(tinted)
+        return tinted
 
     @classmethod
     def clear_cache(cls):
@@ -46,7 +52,6 @@ class IconManager:
 
     @classmethod
     def list_icons(cls) -> List[str]:
-        """Lists all available icon names (filenames without extension)."""
         if not os.path.isdir(cls._images_path):
             return []
         return [
