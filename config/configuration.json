@@ -51,7 +51,7 @@
             },
             "theme": {
                 "name": "Colour Theme",
-                "value": "light",
+                "value": "dark",
                 "values": [
                     "dark",
                     "light"

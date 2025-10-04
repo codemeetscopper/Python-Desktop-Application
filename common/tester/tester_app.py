@@ -394,7 +394,7 @@ class MainWindow(QMainWindow):
         self.icon_color_combo = QComboBox()
         self.icon_size_input = QSpinBox()
         self.icon_size_input.setRange(8, 128)
-        self.icon_size_input.setValue(32)
+        self.icon_size_input.setValue(55)
         load_icon_btn = QPushButton("Load New Icon(s)")
         load_icon_btn.clicked.connect(self.load_new_icons)
 
@@ -486,8 +486,8 @@ class MainWindow(QMainWindow):
         icon_label = QLabel()
         icon_label.setWordWrap(True)
         icon_label.setPixmap(pixmap)
+        name = name.replace('_', ' ')
         name_label = QLabel(name)
-        name_label.setText(f'<div style="white-space: normal; word-wrap: break-word;">{name}</div>')
         name_label.setWordWrap(True)
         name_label.setAlignment(Qt.AlignCenter)
 
@@ -607,7 +607,7 @@ class MainWindow(QMainWindow):
         StyleManager.initialise(accent, support, neutral, theme=theme)
 
         palette_grid = QGridLayout()
-        palette_grid.setSpacing(12)
+        palette_grid.setSpacing(16)
         keys = sorted(StyleManager._colours.keys())
         cols = 3
         for idx, key in enumerate(keys):
@@ -690,6 +690,12 @@ class MainWindow(QMainWindow):
             self.reload_ui()
         except Exception as e:
             self._logger.error(f"Failed to delete setting '{key}': {e}")
+
+    def closeEvent(self, event, /):
+        if self._server:
+            self.stop_server()
+        self._config.save()
+        event.accept()
 
 def run():
     app = QApplication([])
