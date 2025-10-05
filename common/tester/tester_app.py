@@ -386,7 +386,8 @@ class MainWindow(QMainWindow):
 
     def setup_icon_tab(self):
         # Set path relative to this script's location
-        icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'resources', 'images', 'meterialicons'))
+        icon_path = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), '..', '..', 'resources', 'images', 'meterialicons'))
         IconManager.set_images_path(icon_path)
 
         # --- Controls ---
@@ -395,20 +396,31 @@ class MainWindow(QMainWindow):
         self.icon_size_input = QSpinBox()
         self.icon_size_input.setRange(8, 128)
         self.icon_size_input.setValue(55)
+
+        # --- Search and Refresh Controls ---
+        self.icon_search_input = QLineEdit()
+        self.icon_search_input.setPlaceholderText("Search icons...")
+        self.icon_search_input.textChanged.connect(self.update_icon_display)
+
+        self.refresh_icons_btn = QPushButton("Refresh")
+        self.refresh_icons_btn.clicked.connect(self.refresh_icons)
+
+        # Load new icons button
         load_icon_btn = QPushButton("Load New Icon(s)")
         load_icon_btn.clicked.connect(self.load_new_icons)
 
-        self.icon_color_combo.currentTextChanged.connect(self.update_icon_display)
-
-
-        self.icon_size_input.valueChanged.connect(self.update_icon_display)
-
+        # Add controls
         controls_layout.addRow("Color:", self.icon_color_combo)
         controls_layout.addRow("Size:", self.icon_size_input)
-        controls_layout.addRow(load_icon_btn)
+        controls_layout.addRow("Search:", self.icon_search_input)
+        button_row = QHBoxLayout()
+        button_row.addWidget(self.refresh_icons_btn)
+        button_row.addWidget(load_icon_btn)
+        controls_layout.addRow(button_row)
+
         self.icon_layout.addLayout(controls_layout)
 
-        # --- Icon Display ---
+        # --- Icon Display Area ---
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         self.icon_grid_widget = QWidget()
@@ -416,9 +428,80 @@ class MainWindow(QMainWindow):
         scroll.setWidget(self.icon_grid_widget)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.icon_layout.addWidget(scroll)
+
+        # --- Loading Indicator ---
+        self.loading_label = QLabel("Loading icons...")
+        self.loading_label.setAlignment(Qt.AlignCenter)
+        self.loading_label.hide()  # hidden until loading starts
+        self.icon_layout.addWidget(self.loading_label)
+
         self._icon_loader_thread = None
         self._icon_loader_worker = None
         self.update_icon_display()
+
+    def refresh_icons(self):
+        """Refresh icon list and reload display."""
+        IconManager.clear_cache()
+        self.update_icon_display()
+
+    def update_icon_display(self):
+        # Stop any existing worker thread
+        if getattr(self, "_icon_loader_worker", None):
+            try:
+                self._icon_loader_worker.stop()
+            except RuntimeError:
+                pass
+
+        if getattr(self, "_icon_loader_thread", None):
+            try:
+                if self._icon_loader_thread.isRunning():
+                    self._icon_loader_thread.quit()
+                    self._icon_loader_thread.wait()
+            except RuntimeError:
+                pass
+
+            self._icon_loader_thread = None
+            self._icon_loader_worker = None
+
+        # Clear existing grid
+        self.clear_layout(self.icon_grid_layout)
+
+        # Show loading label
+        self.loading_label.show()
+
+        color_key = self.icon_color_combo.currentText()
+        if not color_key:
+            self.loading_label.setText("No color selected.")
+            return
+
+        color = StyleManager.get_colour(color_key)
+        size = self.icon_size_input.value()
+
+        # --- Search filter ---
+        search_text = self.icon_search_input.text().strip().lower()
+
+        icon_names = sorted(IconManager.list_icons())
+        if search_text:
+            icon_names = [n for n in icon_names if search_text in n.lower()]
+
+        if not icon_names:
+            self.loading_label.setText("No icons found.")
+            return
+
+        # --- Start new worker thread ---
+        self._icon_loader_worker = IconLoaderWorker(icon_names, color, size)
+        self._icon_loader_thread = QThread()
+        self._icon_loader_worker.moveToThread(self._icon_loader_thread)
+        self._icon_loader_thread.started.connect(self._icon_loader_worker.run)
+        self._icon_loader_worker.icon_loaded.connect(self.add_icon_to_grid)
+        self._icon_loader_worker.finished.connect(self._icon_loader_thread.quit)
+        self._icon_loader_worker.finished.connect(self._icon_loader_worker.deleteLater)
+        self._icon_loader_thread.finished.connect(self._icon_loader_thread.deleteLater)
+
+        # Hide loading label when done
+        self._icon_loader_worker.finished.connect(lambda: self.loading_label.hide())
+
+        self._icon_loader_thread.start()
 
     def load_new_icons(self):
         files, _ = QFileDialog.getOpenFileNames(self, "Select SVG Icon(s)", "", "SVG Files (*.svg)")
@@ -435,50 +518,50 @@ class MainWindow(QMainWindow):
         IconManager.clear_cache()
         self.update_icon_display()
 
-    def update_icon_display(self):
-        # --- Stop and safely clean up any previous thread ---
-        if getattr(self, "_icon_loader_worker", None):
-            try:
-                self._icon_loader_worker.stop()
-            except RuntimeError:
-                pass
-
-        if getattr(self, "_icon_loader_thread", None):
-            try:
-                if self._icon_loader_thread.isRunning():
-                    self._icon_loader_thread.quit()
-                    self._icon_loader_thread.wait()
-            except RuntimeError:
-                # Thread object was already deleted
-                pass
-
-            # Reset references to avoid reusing deleted objects
-            self._icon_loader_thread = None
-            self._icon_loader_worker = None
-
-        # --- Now rebuild icons ---
-        self.clear_layout(self.icon_grid_layout)
-        color_key = self.icon_color_combo.currentText()
-        if not color_key:
-            return
-
-        color = StyleManager.get_colour(color_key)
-        size = self.icon_size_input.value()
-        icon_names = sorted(IconManager.list_icons())
-        if not icon_names:
-            self.icon_grid_layout.addWidget(QLabel("No icons found in the specified path."), 0, 0)
-            return
-
-        # --- Start new background thread ---
-        self._icon_loader_worker = IconLoaderWorker(icon_names, color, size)
-        self._icon_loader_thread = QThread()
-        self._icon_loader_worker.moveToThread(self._icon_loader_thread)
-        self._icon_loader_thread.started.connect(self._icon_loader_worker.run)
-        self._icon_loader_worker.icon_loaded.connect(self.add_icon_to_grid)
-        self._icon_loader_worker.finished.connect(self._icon_loader_thread.quit)
-        self._icon_loader_worker.finished.connect(self._icon_loader_worker.deleteLater)
-        self._icon_loader_thread.finished.connect(self._icon_loader_thread.deleteLater)
-        self._icon_loader_thread.start()
+    # def update_icon_display(self):
+    #     # --- Stop and safely clean up any previous thread ---
+    #     if getattr(self, "_icon_loader_worker", None):
+    #         try:
+    #             self._icon_loader_worker.stop()
+    #         except RuntimeError:
+    #             pass
+    #
+    #     if getattr(self, "_icon_loader_thread", None):
+    #         try:
+    #             if self._icon_loader_thread.isRunning():
+    #                 self._icon_loader_thread.quit()
+    #                 self._icon_loader_thread.wait()
+    #         except RuntimeError:
+    #             # Thread object was already deleted
+    #             pass
+    #
+    #         # Reset references to avoid reusing deleted objects
+    #         self._icon_loader_thread = None
+    #         self._icon_loader_worker = None
+    #
+    #     # --- Now rebuild icons ---
+    #     self.clear_layout(self.icon_grid_layout)
+    #     color_key = self.icon_color_combo.currentText()
+    #     if not color_key:
+    #         return
+    #
+    #     color = StyleManager.get_colour(color_key)
+    #     size = self.icon_size_input.value()
+    #     icon_names = sorted(IconManager.list_icons())
+    #     if not icon_names:
+    #         self.icon_grid_layout.addWidget(QLabel("No icons found in the specified path."), 0, 0)
+    #         return
+    #
+    #     # --- Start new background thread ---
+    #     self._icon_loader_worker = IconLoaderWorker(icon_names, color, size)
+    #     self._icon_loader_thread = QThread()
+    #     self._icon_loader_worker.moveToThread(self._icon_loader_thread)
+    #     self._icon_loader_thread.started.connect(self._icon_loader_worker.run)
+    #     self._icon_loader_worker.icon_loaded.connect(self.add_icon_to_grid)
+    #     self._icon_loader_worker.finished.connect(self._icon_loader_thread.quit)
+    #     self._icon_loader_worker.finished.connect(self._icon_loader_worker.deleteLater)
+    #     self._icon_loader_thread.finished.connect(self._icon_loader_thread.deleteLater)
+    #     self._icon_loader_thread.start()
 
     def add_icon_to_grid(self, idx, name, pixmap):
         cols = 5
