@@ -49,7 +49,8 @@ class AppData(QObject):
 
     def set_progress(self, value: int, message: str = ""):
         """API call to update progress globally."""
-        self._logger.info(message)
+        if message != "":
+            self._logger.info(message)
         self.progress_changed.emit(value, message)
 
     @Slot(int, str)
