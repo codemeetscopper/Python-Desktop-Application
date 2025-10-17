@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
 
         # Main layout setup
         sub_splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.ui.main_tw.setMinimumWidth(800)
+        # self.ui.main_tw.setMinimumWidth(800)
         sub_splitter.addWidget(self.ui.main_tw)
         main_splitter.addWidget(sub_splitter)
         self.setCentralWidget(main_splitter)
@@ -428,7 +428,7 @@ class MainWindow(QMainWindow):
         controls_layout = QFormLayout()
         self.icon_color_combo = QComboBox()
         self.icon_size_input = QSpinBox()
-        self.icon_size_input.setRange(8, 128)
+        self.icon_size_input.setRange(8, 300)
         self.icon_size_input.setValue(55)
 
         # --- Search and Refresh Controls ---
@@ -473,7 +473,7 @@ class MainWindow(QMainWindow):
         self.refresh_icons_btn.clicked.connect(self.refresh_icons)
         load_icon_btn.clicked.connect(self.load_new_icons)
         self.icon_color_combo.currentTextChanged.connect(self.update_icon_display)
-        self.icon_size_input.valueChanged.connect(self.update_icon_display)
+        # self.icon_size_input.valueChanged.connect(self.update_icon_display)
 
         # Connect the notifier from IconManager ONCE.
         if not self._icon_notifier_connected:
@@ -532,7 +532,7 @@ class MainWindow(QMainWindow):
 
             # Create placeholder widgets
             icon_label = QLabel()
-            icon_label.setFixedSize(64, 64)
+            icon_label.setFixedSize(size, size)
             icon_label.setAlignment(Qt.AlignCenter)
             name_label = QLabel(name.replace('_', ' '))
             name_label.setWordWrap(True)
