@@ -31,7 +31,7 @@ class Splash(QWidget):
         self.ui.version_label.setText(self.version)
         self.ui.app_name_label.setFont(AppCntxt.font.get_font('h1'))
         self.ui.app_name_label.setStyleSheet(f"color: {AppCntxt.styler.get_colour('accent')}")
-        self.ui.logo_label.setPixmap(AppCntxt.styler.get_pixmap('logo', AppCntxt.styler.get_colour('support'), 100))
+        self.ui.logo_label.setPixmap(AppCntxt.styler.get_pixmap('navigation apps', AppCntxt.styler.get_colour('support'), 100))
 
     def _setup_progress_bar(self):
         style = f"""

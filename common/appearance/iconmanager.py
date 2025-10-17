@@ -2,7 +2,7 @@ import os
 import threading
 from typing import Dict, List, Optional
 from PySide6.QtCore import QObject, Signal, Qt, QThreadPool, QRunnable
-from PySide6.QtGui import QPixmap, QPainter, QColor
+from PySide6.QtGui import QPixmap, QPainter, QColor, QImage
 from PySide6.QtSvg import QSvgRenderer
 
 
@@ -10,7 +10,7 @@ from PySide6.QtSvg import QSvgRenderer
 # Internal async worker
 # ------------------------------
 class _IconLoadTask(QRunnable):
-    """Background worker for loading and caching icons."""
+    """Background worker for loading and caching icons as QImage."""
     def __init__(self, name: str, color: str, size: int, file_path: str, callback):
         super().__init__()
         self.name = name
@@ -20,9 +20,11 @@ class _IconLoadTask(QRunnable):
         self.callback = callback
 
     def run(self):
-        pixmap = IconManager._load_icon_pixmap(self.file_path, self.color, self.size)
+        # Render to a thread-safe QImage in the background
+        image = IconManager._load_icon_image(self.file_path, self.color, self.size)
         if self.callback:
-            self.callback(self.name, self.color, self.size, pixmap)
+            # The callback will receive the QImage object
+            self.callback(self.name, self.color, self.size, image)
 
 
 # ------------------------------
@@ -30,7 +32,8 @@ class _IconLoadTask(QRunnable):
 # ------------------------------
 class _IconNotifier(QObject):
     """QObject wrapper so static IconManager can still emit Qt signals."""
-    icon_loaded = Signal(str, QPixmap)
+    # Emit a generic object to safely pass QImage across threads
+    icon_loaded = Signal(str, object)
 
 
 # ------------------------------
@@ -40,7 +43,7 @@ class IconManager:
     """Thread-safe, cached and async-capable SVG icon manager (static API)."""
 
     # Internal state
-    _icon_cache: Dict[str, QPixmap] = {}
+    _icon_cache: Dict[str, QImage] = {}  # Cache QImage, not QPixmap
     _icon_lock = threading.Lock()
     _images_path: str = r"resources/images/meterialicons/"
     _icon_list: List[str] = []
@@ -68,7 +71,8 @@ class IconManager:
         if not query_lower:
             return sorted(icons)
 
-        exact_matches, core_matches, substring_matches = [], [], []
+        exact_matches, exact_core_matches, core_matches, substring_matches = [], [], [], []
+        all_suffixes = IconManager._style_suffixes + IconManager._size_suffixes
 
         for icon in icons:
             icon_lower = icon.lower()
@@ -76,19 +80,25 @@ class IconManager:
                 exact_matches.append(icon)
                 continue
 
-            # Extract core name
+            # Iteratively strip all known suffixes to find the true core name
             core_name = icon_lower
-            for suffix in IconManager._size_suffixes + IconManager._style_suffixes:
-                if core_name.endswith(suffix):
-                    core_name = core_name[: -len(suffix)]
-                    break
+            stripped = True
+            while stripped:
+                stripped = False
+                for suffix in all_suffixes:
+                    if core_name.endswith(suffix):
+                        core_name = core_name[: -len(suffix)]
+                        stripped = True
+                        break  # Restart the inner loop to handle multiple suffixes
 
-            if query_lower in core_name:
+            if query_lower == core_name:
+                exact_core_matches.append(icon)
+            elif query_lower in core_name:
                 core_matches.append(icon)
             elif query_lower in icon_lower:
                 substring_matches.append(icon)
 
-        return sorted(exact_matches) + sorted(core_matches) + sorted(substring_matches)
+        return sorted(exact_matches) + sorted(exact_core_matches) + sorted(core_matches) + sorted(substring_matches)
 
     @classmethod
     def get_pixmap(
@@ -100,38 +110,49 @@ class IconManager:
     ) -> Optional[QPixmap]:
         """
         Returns a colored QPixmap of an icon.
-        If async_load=True, loads in background and emits `icon_loaded(name, pixmap)` when done.
+        If async_load=True, loads in background and emits `icon_loaded(name, image)` when done.
         """
         if not cls._icon_list:
             cls.list_icons()
 
+        # Find the full icon name if a partial name is given
         name_list = cls.search_icons(name, cls._icon_list)
         if name_list:
-            name = name_list[0]
-        elif name not in cls._icon_list:
+            resolved_name = name_list[0]
+        elif name in cls._icon_list:
+            resolved_name = name
+        else:
             raise FileNotFoundError(f"[IconManager] Icon not found: {name}")
 
-        cache_key = f"{name}|{color.lower()}|{size}"
+        cache_key = f"{resolved_name}|{color.lower()}|{size}"
 
-        # --- Cache lookup ---
+        # --- Cache lookup (now checking for QImage) ---
         with cls._icon_lock:
             if cache_key in cls._icon_cache:
-                return QPixmap(cls._icon_cache[cache_key])
+                cached_image = cls._icon_cache[cache_key]
+                if async_load:
+                    # For async, emit signal immediately with cached data instead of returning
+                    cls._notifier.icon_loaded.emit(resolved_name, cached_image)
+                    return None
+                else:
+                    # For sync, convert cached QImage to QPixmap and return
+                    return QPixmap.fromImage(cached_image)
 
-        file_path = os.path.join(cls._images_path, f"{name}.svg")
+        file_path = os.path.join(cls._images_path, f"{resolved_name}.svg")
         if not os.path.exists(file_path):
             print(f"[IconManager] Missing icon file: {file_path}")
             return QPixmap()
 
         if async_load:
-            # Run background worker
-            task = _IconLoadTask(name, color, size, file_path, cls._cache_result)
+            # Run background worker to produce a QImage
+            task = _IconLoadTask(resolved_name, color, size, file_path, cls._cache_result)
             cls._thread_pool.start(task)
-            return None
+            return None  # Return immediately for async calls
         else:
-            pixmap = cls._load_icon_pixmap(file_path, color, size)
-            cls._cache_result(name, color, size, pixmap)
-            return pixmap
+            # Synchronous path: render QImage, cache it, and return a QPixmap
+            image = cls._load_icon_image(file_path, color, size)
+            cls._cache_result(resolved_name, color, size, image)
+            return QPixmap.fromImage(image)
 
     @classmethod
     def clear_cache(cls):
@@ -173,33 +194,37 @@ class IconManager:
     # --------------------------
 
     @classmethod
-    def _cache_result(cls, name: str, color: str, size: int, pixmap: QPixmap):
-        """Safely cache and emit signal when ready."""
+    def _cache_result(cls, name: str, color: str, size: int, image: QImage):
+        """Safely cache the QImage and emit the signal."""
+        if not image or image.isNull():
+            return
+
         cache_key = f"{name}|{color.lower()}|{size}"
         with cls._icon_lock:
-            cls._icon_cache[cache_key] = QPixmap(pixmap)
+            # Store a copy of the QImage in the cache
+            cls._icon_cache[cache_key] = QImage(image)
 
-        # Emit signal from notifier instance
-        cls._notifier.icon_loaded.emit(name, pixmap)
+        # Emit signal from notifier instance with the QImage object
+        cls._notifier.icon_loaded.emit(name, image)
+
+    @staticmethod
+    def _load_icon_image(file_path: str, color: str, size: int) -> QImage:
+        """Render and colorize SVG icon into a QImage (thread-safe)."""
+        svg_renderer = QSvgRenderer(file_path)
+        # Create a QImage, which is safe to use in non-GUI threads
+        image = QImage(size, size, QImage.Format_ARGB32)
+        image.fill(Qt.transparent)
+
+        painter = QPainter(image)
+        svg_renderer.render(painter)
+        # Apply color tint
+        painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+        painter.fillRect(image.rect(), QColor(color))
+        painter.end()
+
+        return image
 
     @staticmethod
     def _load_icon_pixmap(file_path: str, color: str, size: int) -> QPixmap:
-        """Render and colorize SVG icon."""
-        svg_renderer = QSvgRenderer(file_path)
-        base_pixmap = QPixmap(size, size)
-        base_pixmap.fill(Qt.transparent)
-
-        painter = QPainter(base_pixmap)
-        svg_renderer.render(painter)
-        painter.end()
-
-        tinted = QPixmap(size, size)
-        tinted.fill(Qt.transparent)
-
-        painter.begin(tinted)
-        painter.drawPixmap(0, 0, base_pixmap)
-        painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
-        painter.fillRect(tinted.rect(), QColor(color))
-        painter.end()
-
-        return tinted
+        """DEPRECATED: This method is unsafe in threads. Use _load_icon_image."""
+        return QPixmap.fromImage(IconManager._load_icon_image(file_path, color, size))

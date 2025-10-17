@@ -19,15 +19,15 @@ class CustomTitleBar(QWidget):
         # icon + title
         self.icon = QLabel()
         self.icon.setFixedSize(30, 30)
-        self.icon.setPixmap(AppCntxt.styler.get_pixmap('logo', AppCntxt.styler.get_colour('accent'), 28))
+        self.icon.setPixmap(AppCntxt.styler.get_pixmap('navigation apps', AppCntxt.styler.get_colour('accent'), 28))
 
         self.btn_min = QPushButton("")
         self.btn_max = QPushButton("")
         self.btn_close = QPushButton("")
 
         self.btn_min.setIcon(AppCntxt.styler.get_pixmap('minimize', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
-        self.btn_max.setIcon(AppCntxt.styler.get_pixmap('expand', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
-        self.btn_close.setIcon(AppCntxt.styler.get_pixmap('close', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
+        self.btn_max.setIcon(AppCntxt.styler.get_pixmap('navigation fullscreen', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
+        self.btn_close.setIcon(AppCntxt.styler.get_pixmap('navigation close', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
 
         self.title = QLabel(parent.windowTitle())
         self.title.setObjectName("TitleLabel")
@@ -40,7 +40,7 @@ class CustomTitleBar(QWidget):
             # b.setFixedSize(46, 28)
             # b.setFlat(True)
             b.setStyleSheet(f"background-color: transparent; border-radius: 2px;"
-                            f"border: 1px solid {AppCntxt.styler.get_colour('bg1')}; "
+                            f"border: 0px solid {AppCntxt.styler.get_colour('bg1')}; "
                             f"margin-right: 4px;")
             b.setIconSize(QSize(self._icon_size, self._icon_size))
 
@@ -62,12 +62,12 @@ class CustomTitleBar(QWidget):
     def _toggle_max(self):
         if self._parent.isMaximized():
             self._parent.showNormal()
-            self.btn_max.setIcon(AppCntxt.styler.get_pixmap('expand',
+            self.btn_max.setIcon(AppCntxt.styler.get_pixmap('navigation fullscreen',
                                                             AppCntxt.styler.get_colour('accent_d3'),
                                                             self._icon_size))
         else:
             self._parent.showMaximized()
-            self.btn_max.setIcon(AppCntxt.styler.get_pixmap('collapse',
+            self.btn_max.setIcon(AppCntxt.styler.get_pixmap('navigation fullscreen exit',
                                                             AppCntxt.styler.get_colour('accent_d3'),
                                                             self._icon_size))
 

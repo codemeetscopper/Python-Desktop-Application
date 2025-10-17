@@ -1,3 +1,4 @@
+import hashlib
 import os
 import shutil
 import json
@@ -8,10 +9,12 @@ from PySide6.QtWidgets import (
     QLabel, QComboBox, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QGroupBox, QFormLayout, QScrollArea,
     QSpinBox, QTextEdit, QSplitter, QFrame
 )
-from PySide6.QtGui import QColor, QPainter, QIcon, QPixmap, QFont
+from PySide6.QtGui import QColor, QPainter, QIcon, QPixmap, QFont, QImage
 
+from common import threadmanager
 from common.appearance.stylemanager import StyleManager
 from common.configuration.parser import ConfigurationManager, SettingItem
+from common.data import AppData
 from common.tester.tester import Ui_TesterWindow
 from common.appearance.fontmanager import FontManager
 from common.appearance.iconmanager import IconManager
@@ -19,6 +22,9 @@ from common.logger import Logger
 from common.tcpinterface.backendserver import BackendServer
 from common.tcpinterface.backendclient import BackendClient
 from common.tcpinterface.aes import AESCipher
+from frontend import AppCntxt
+from frontend.core.titlebar import CustomTitleBar
+
 
 class ColourSwatch(QWidget):
     def __init__(self, color: QColor, tag: str, value: str, parent=None):
@@ -41,43 +47,33 @@ class ColourSwatch(QWidget):
         text = f"{self._tag}: {self._value}"
         painter.drawText(self.rect(), Qt.AlignCenter, text)
 
-class IconLoaderWorker(QObject):
-    icon_loaded = Signal(int, str, QPixmap)
-    finished = Signal()
-
-    def __init__(self, icon_names, color, size):
-        super().__init__()
-        self.icon_names = icon_names
-        self.color = color
-        self.size = size
-        self._is_running = True
-
-    def stop(self):
-        self._is_running = False
-
-    def run(self):
-        for idx, name in enumerate(self.icon_names):
-            if not self._is_running:
-                break
-            pixmap = IconManager.get_pixmap(name, self.color, self.size)
-            self.icon_loaded.emit(idx, name, pixmap)
-        self.finished.emit()
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.ui = Ui_TesterWindow()
         self.ui.setupUi(self)
         self.setWindowTitle("Common Tester")
-
-        # Main layout setup
-        main_splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.ui.main_tw.setMinimumWidth(800)
-        main_splitter.addWidget(self.ui.main_tw)
-        self.setCentralWidget(main_splitter)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
 
         file_path, _ = QFileDialog.getOpenFileName(self, "Select config file.", r"../../config")
         self._config = ConfigurationManager(file_path)
+        self._initialise_context()
+        icon_path = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), '..', '..', 'resources', 'images', 'meterialicons'))
+        IconManager.set_images_path(icon_path)
+        IconManager.list_icons()
+
+        main_splitter = QSplitter(Qt.Orientation.Vertical)
+        main_splitter.addWidget(CustomTitleBar(self))
+
+        # Main layout setup
+        sub_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.ui.main_tw.setMinimumWidth(800)
+        sub_splitter.addWidget(self.ui.main_tw)
+        main_splitter.addWidget(sub_splitter)
+        self.setCentralWidget(main_splitter)
+
+
         self.combos = {}
         self.lineedits = {}
         self._font_manager = FontManager()
@@ -86,12 +82,53 @@ class MainWindow(QMainWindow):
         self._client = None
         self._aes_cipher = None
 
-        self.ui.menubar.setVisible(False)
+        # self.ui.menubar.setVisible(False)
+
+        # --- Icon Tab State ---
+        self._icon_label_map: dict[str, QLabel] = {}
+        self._icon_notifier_connected = False
+        self._loading_total = 0
+        self._loaded_count = 0
+        self._icon_load_generation = 0  # Generation counter to discard old async results
 
         self.setup_tabs()
-        self.setup_logger_ui(main_splitter) # Pass splitter to add logger
+        self.setup_logger_ui(sub_splitter) # Pass splitter to add logger
         main_splitter.setSizes([self.height() // 2, self.height() // 2]) # Set 1:1 ratio
         self.reload_ui()
+
+        # self.ui.setupUi(self)
+        # self.ui.verticalLayout.layout().insertWidget(0, self.titlebar)
+
+    def _initialise_context(self):
+        AppCntxt.logger = Logger()
+        AppCntxt.threader = threadmanager.get_instance()
+
+        AppCntxt.data = AppData()
+
+        AppCntxt.threader.start()
+        AppCntxt.settings = self._config
+
+        ip = AppCntxt.settings.get_value('sdk_ip_address')
+        port = AppCntxt.settings.get_value('sdk_tcp_port')
+        timeout = AppCntxt.settings.get_value('sdk_tcp_timeout')
+        # key = AppCntxt.settings.get_value('sdk_aes_key')
+        key = hashlib.sha256(b"sample key").digest()
+        AppCntxt.backend = BackendClient(ip, port, timeout, secret_key=key)
+
+        AppCntxt.styler = StyleManager()
+        accent = AppCntxt.settings.get_value('accent')
+        support = AppCntxt.settings.get_value('support')
+        neutral = AppCntxt.settings.get_value('neutral')
+        theme = AppCntxt.settings.get_value('theme')
+        AppCntxt.styler.initialise(accent, support, neutral, theme)
+
+        AppCntxt.font = FontManager()
+        AppCntxt.font.load_font(r"../../resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h1", 18)
+        AppCntxt.font.load_font(r"../../resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h2", 14)
+        AppCntxt.font.load_font(r"../../resources/fonts/Roboto-VariableFont_wdth,wght.ttf", "p", 11)
+        AppCntxt.font.load_font(r"../../resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "pc", 11)
+        AppCntxt.font.load_font(r"../../resources/fonts/Inconsolata-VariableFont_wdth,wght.ttf", "log", 11)
+        QApplication.processEvents()
 
     def setup_tabs(self):
         # Settings Tab
@@ -386,9 +423,6 @@ class MainWindow(QMainWindow):
 
     def setup_icon_tab(self):
         # Set path relative to this script's location
-        icon_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), '..', '..', 'resources', 'images', 'meterialicons'))
-        IconManager.set_images_path(icon_path)
 
         # --- Controls ---
         controls_layout = QFormLayout()
@@ -400,20 +434,19 @@ class MainWindow(QMainWindow):
         # --- Search and Refresh Controls ---
         self.icon_search_input = QLineEdit()
         self.icon_search_input.setPlaceholderText("Search icons...")
-        self.icon_search_input.textChanged.connect(self.update_icon_display)
-
-        self.refresh_icons_btn = QPushButton("Refresh")
-        self.refresh_icons_btn.clicked.connect(self.refresh_icons)
+        # Search is now triggered by the button, not textChanged
+        self.search_icons_btn = QPushButton("Search")
+        self.refresh_icons_btn = QPushButton("Refresh List")
 
         # Load new icons button
         load_icon_btn = QPushButton("Load New Icon(s)")
-        load_icon_btn.clicked.connect(self.load_new_icons)
 
         # Add controls
         controls_layout.addRow("Color:", self.icon_color_combo)
         controls_layout.addRow("Size:", self.icon_size_input)
         controls_layout.addRow("Search:", self.icon_search_input)
         button_row = QHBoxLayout()
+        button_row.addWidget(self.search_icons_btn)
         button_row.addWidget(self.refresh_icons_btn)
         button_row.addWidget(load_icon_btn)
         controls_layout.addRow(button_row)
@@ -435,36 +468,39 @@ class MainWindow(QMainWindow):
         self.loading_label.hide()  # hidden until loading starts
         self.icon_layout.addWidget(self.loading_label)
 
-        self._icon_loader_thread = None
-        self._icon_loader_worker = None
+        # --- Connect signals ---
+        self.search_icons_btn.clicked.connect(self.update_icon_display)
+        self.refresh_icons_btn.clicked.connect(self.refresh_icons)
+        load_icon_btn.clicked.connect(self.load_new_icons)
+        self.icon_color_combo.currentTextChanged.connect(self.update_icon_display)
+        self.icon_size_input.valueChanged.connect(self.update_icon_display)
+
+        # Connect the notifier from IconManager ONCE.
+        if not self._icon_notifier_connected:
+            try:
+                IconManager._notifier.icon_loaded.connect(self._on_icon_loaded)
+                self._icon_notifier_connected = True
+            except Exception as e:
+                self._logger.error(f"Failed to connect icon notifier: {e}")
+
         self.update_icon_display()
 
     def refresh_icons(self):
-        """Refresh icon list and reload display."""
-        IconManager.clear_cache()
+        """Refresh icon list from disk and reload display."""
+        IconManager.list_icons()  # Force re-scan of the directory
+        self.icon_search_input.clear() # Clear search on full refresh
         self.update_icon_display()
 
     def update_icon_display(self):
-        # Stop any existing worker thread
-        if getattr(self, "_icon_loader_worker", None):
-            try:
-                self._icon_loader_worker.stop()
-            except RuntimeError:
-                pass
+        # Increment generation to invalidate results from previous loads
+        self._icon_load_generation += 1
+        current_generation = self._icon_load_generation
 
-        if getattr(self, "_icon_loader_thread", None):
-            try:
-                if self._icon_loader_thread.isRunning():
-                    self._icon_loader_thread.quit()
-                    self._icon_loader_thread.wait()
-            except RuntimeError:
-                pass
-
-            self._icon_loader_thread = None
-            self._icon_loader_worker = None
-
-        # Clear existing grid
+        # Clear existing grid and state
         self.clear_layout(self.icon_grid_layout)
+        self._icon_label_map.clear()
+        self._loaded_count = 0
+        self._loading_total = 0
 
         # Show loading label
         self.loading_label.show()
@@ -477,31 +513,67 @@ class MainWindow(QMainWindow):
         color = StyleManager.get_colour(color_key)
         size = self.icon_size_input.value()
 
-        # --- Search filter ---
-        search_text = self.icon_search_input.text().strip().lower()
-
-        icon_names = sorted(IconManager.list_icons())
-        if search_text:
-            icon_names = [n for n in icon_names if search_text in n.lower()]
+        # --- Get filtered list of icons to display ---
+        search_text = self.icon_search_input.text()
+        all_icons = IconManager.list_icons()
+        icon_names = IconManager.search_icons(search_text, all_icons)
 
         if not icon_names:
             self.loading_label.setText("No icons found.")
             return
 
-        # --- Start new worker thread ---
-        self._icon_loader_worker = IconLoaderWorker(icon_names, color, size)
-        self._icon_loader_thread = QThread()
-        self._icon_loader_worker.moveToThread(self._icon_loader_thread)
-        self._icon_loader_thread.started.connect(self._icon_loader_worker.run)
-        self._icon_loader_worker.icon_loaded.connect(self.add_icon_to_grid)
-        self._icon_loader_worker.finished.connect(self._icon_loader_thread.quit)
-        self._icon_loader_worker.finished.connect(self._icon_loader_worker.deleteLater)
-        self._icon_loader_thread.finished.connect(self._icon_loader_thread.deleteLater)
+        self._loading_total = len(icon_names)
+        self.loading_label.setText(f"Loading 0/{self._loading_total} icons...")
 
-        # Hide loading label when done
-        self._icon_loader_worker.finished.connect(lambda: self.loading_label.hide())
+        # --- Create placeholders and request async loads ---
+        cols = 5
+        for idx, name in enumerate(icon_names):
+            row, col = divmod(idx, cols)
 
-        self._icon_loader_thread.start()
+            # Create placeholder widgets
+            icon_label = QLabel()
+            icon_label.setFixedSize(64, 64)
+            icon_label.setAlignment(Qt.AlignCenter)
+            name_label = QLabel(name.replace('_', ' '))
+            name_label.setWordWrap(True)
+            name_label.setAlignment(Qt.AlignCenter)
+
+            cell_widget = QWidget()
+            cell_layout = QVBoxLayout(cell_widget)
+            cell_layout.addWidget(icon_label)
+            cell_layout.addWidget(name_label)
+            self.icon_grid_layout.addWidget(cell_widget, row, col)
+
+            # Map the icon name to its label for async update
+            self._icon_label_map[name] = icon_label
+
+            # Request the icon, IconManager will load it in the background
+            try:
+                IconManager.get_pixmap(name, color, size, async_load=True)
+            except FileNotFoundError:
+                self._loading_total -= 1 # Decrement total if file is missing
+
+        if self._loading_total <= 0:
+            self.loading_label.setText("No icons found.")
+
+    def _on_icon_loaded(self, name: str, image: QImage):
+        """Slot connected to IconManager's notifier. Receives QImage from worker thread."""
+        # Discard signal if it's from a previous, obsolete loading operation
+        if self._icon_load_generation != getattr(self, '_icon_load_generation', 0):
+            return
+
+        if name in self._icon_label_map:
+            label = self._icon_label_map[name]
+            # Convert thread-safe QImage to QPixmap in the main GUI thread
+            pixmap = QPixmap.fromImage(image)
+            if not pixmap.isNull():
+                label.setPixmap(pixmap.scaled(label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+            self._loaded_count += 1
+            self.loading_label.setText(f"Loading {self._loaded_count}/{self._loading_total} icons...")
+
+            if self._loaded_count >= self._loading_total:
+                self.loading_label.hide()
 
     def load_new_icons(self):
         files, _ = QFileDialog.getOpenFileNames(self, "Select SVG Icon(s)", "", "SVG Files (*.svg)")
@@ -515,73 +587,7 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 print(f"Failed to copy {file_path} to {dest_path}: {e}")
 
-        IconManager.clear_cache()
-        self.update_icon_display()
-
-    # def update_icon_display(self):
-    #     # --- Stop and safely clean up any previous thread ---
-    #     if getattr(self, "_icon_loader_worker", None):
-    #         try:
-    #             self._icon_loader_worker.stop()
-    #         except RuntimeError:
-    #             pass
-    #
-    #     if getattr(self, "_icon_loader_thread", None):
-    #         try:
-    #             if self._icon_loader_thread.isRunning():
-    #                 self._icon_loader_thread.quit()
-    #                 self._icon_loader_thread.wait()
-    #         except RuntimeError:
-    #             # Thread object was already deleted
-    #             pass
-    #
-    #         # Reset references to avoid reusing deleted objects
-    #         self._icon_loader_thread = None
-    #         self._icon_loader_worker = None
-    #
-    #     # --- Now rebuild icons ---
-    #     self.clear_layout(self.icon_grid_layout)
-    #     color_key = self.icon_color_combo.currentText()
-    #     if not color_key:
-    #         return
-    #
-    #     color = StyleManager.get_colour(color_key)
-    #     size = self.icon_size_input.value()
-    #     icon_names = sorted(IconManager.list_icons())
-    #     if not icon_names:
-    #         self.icon_grid_layout.addWidget(QLabel("No icons found in the specified path."), 0, 0)
-    #         return
-    #
-    #     # --- Start new background thread ---
-    #     self._icon_loader_worker = IconLoaderWorker(icon_names, color, size)
-    #     self._icon_loader_thread = QThread()
-    #     self._icon_loader_worker.moveToThread(self._icon_loader_thread)
-    #     self._icon_loader_thread.started.connect(self._icon_loader_worker.run)
-    #     self._icon_loader_worker.icon_loaded.connect(self.add_icon_to_grid)
-    #     self._icon_loader_worker.finished.connect(self._icon_loader_thread.quit)
-    #     self._icon_loader_worker.finished.connect(self._icon_loader_worker.deleteLater)
-    #     self._icon_loader_thread.finished.connect(self._icon_loader_thread.deleteLater)
-    #     self._icon_loader_thread.start()
-
-    def add_icon_to_grid(self, idx, name, pixmap):
-        cols = 5
-        row, col = divmod(idx, cols)
-        icon_label = QLabel()
-        icon_label.setWordWrap(True)
-        icon_label.setPixmap(pixmap)
-        name = name.replace('_', ' ')
-        name_label = QLabel(name)
-        name_label.setWordWrap(True)
-        name_label.setAlignment(Qt.AlignCenter)
-
-        cell_widget = QWidget()
-        cell_widget.setMaximumWidth(200)
-        cell_widget.setMaximumHeight(300)
-        cell_layout = QVBoxLayout(cell_widget)
-        cell_layout.addWidget(icon_label, alignment=Qt.AlignCenter)
-        cell_layout.addWidget(name_label)
-        cell_layout.setContentsMargins(0, 0, 0, 0)
-        self.icon_grid_layout.addWidget(cell_widget, row, col)
+        self.refresh_icons()
 
     def reload_ui(self):
         # Clear layouts
@@ -713,7 +719,7 @@ class MainWindow(QMainWindow):
         self.icon_color_combo.blockSignals(False)
 
         self.setPalette(StyleManager.get_palette())
-        self.update_icon_display()
+        # self.update_icon_display() # This can cause excessive reloads, called explicitly now
 
     def clear_layout(self, layout):
         while layout.count():
