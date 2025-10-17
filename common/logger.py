@@ -39,13 +39,16 @@ class Logger(QObject):
 
         super().__init__()
         self.name = name
+        self.level = level
         self.logs = Queue()
 
         # Python logging setup
         self._logger = logging.getLogger(name)
+        self._logger.setLevel(level)
         self._logger.propagate = False
 
         console_handler = ColouredConsoleHandler()
+        console_handler.setLevel(level)
         formatter = logging.Formatter(
             "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
         )
