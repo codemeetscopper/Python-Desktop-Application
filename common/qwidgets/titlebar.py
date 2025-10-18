@@ -56,7 +56,7 @@ class CustomTitleBar(QWidget):
         for b in (self.btn_min, self.btn_max, self.btn_close):
             b.setStyleSheet(f"background-color: transparent; border-radius: 2px;"
                             f"border: 0px solid {AppCntxt.styler.get_colour('bg1')}; "
-                            f"margin-right: 4px;")
+                            f"margin-right: 4px; max-width: 22px; min-width: 22px; max-height: 22px; min-height: 22px;")
             b.setIconSize(QSize(self._icon_size, self._icon_size))
 
 

@@ -3,7 +3,10 @@ import os
 import shutil
 import json
 import logging
-from PySide6.QtCore import Qt
+import time
+import asyncio
+import re
+from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QFileDialog, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QGridLayout, QLineEdit, QPushButton, QGroupBox, QFormLayout, QScrollArea,
@@ -49,6 +52,9 @@ class ColourSwatch(QWidget):
         painter.drawText(self.rect(), Qt.AlignCenter, text)
 
 class MainWindow(QMainWindow):
+    # Signal to update UI safely from other threads
+    update_status_signal = Signal(QLabel, str)
+
     def __init__(self):
         super().__init__()
         self.ui = Ui_TesterWindow()
@@ -109,6 +115,11 @@ class MainWindow(QMainWindow):
 
         # self.ui.setupUi(self)
         # self.ui.verticalLayout.layout().insertWidget(0, self.titlebar)
+        self.update_status_signal.connect(self.update_label_text)
+
+    def update_label_text(self, label: QLabel, text: str):
+        """Slot to safely update a QLabel's text from any thread."""
+        label.setText(text)
 
     def _initialise_context(self):
         AppCntxt.logger = Logger()
@@ -160,6 +171,18 @@ class MainWindow(QMainWindow):
         self.ui.main_tw.addTab(self.icon_tab, "Icons")
         self.setup_icon_tab()
 
+        # QSS Editor Tab
+        self.qss_tab = QWidget()
+        self.qss_layout = QVBoxLayout(self.qss_tab)
+        self.ui.main_tw.addTab(self.qss_tab, "QSS Editor")
+        self.setup_qss_editor_tab()
+
+        # Thread Manager Tab
+        self.thread_tab = QWidget()
+        self.thread_layout = QVBoxLayout(self.thread_tab)
+        self.ui.main_tw.addTab(self.thread_tab, "Threading")
+        self.setup_thread_manager_tab()
+
         # Settings Tab
         self.settings_tab = QWidget()
         self.settings_layout = QFormLayout(self.settings_tab)
@@ -185,11 +208,16 @@ class MainWindow(QMainWindow):
         self.ui.main_tw.addTab(self.aes_tab, "AES Cipher")
         self.setup_aes_tab()
 
+
+
+
+
     def setup_logger_ui(self, parent_splitter):
         logger_group = QGroupBox("Logs")
         logger_layout = QVBoxLayout(logger_group)
 
         self.log_display = QTextEdit()
+        self.log_display.setFont(self._font_manager.get_font('log'))
         # self.log_display.setMaximumWidth(600)
         # self.log_display.setReadOnly(True)
         logger_layout.addWidget(self.log_display)
@@ -227,6 +255,203 @@ class MainWindow(QMainWindow):
         path, _ = QFileDialog.getSaveFileName(self, "Save Log File", "", "Log Files (*.log)")
         if path:
             self._logger.export_to_file(path)
+
+    def setup_tcp_server_tab(self):
+        self.server_host_input = QLineEdit("127.0.0.1")
+        self.server_port_input = QLineEdit("5000")
+        self.server_key_input = QLineEdit("a_secure_32_byte_secret_key_!!!!")
+        self.server_status_label = QLabel("Status: Stopped")
+        self.start_server_btn = QPushButton("Start Server")
+        self.stop_server_btn = QPushButton("Stop Server")
+        self.stop_server_btn.setEnabled(False)
+
+        self.start_server_btn.clicked.connect(self.start_server)
+        self.stop_server_btn.clicked.connect(self.stop_server)
+
+        self.server_layout.addRow("Host:", self.server_host_input)
+        self.server_layout.addRow("Port:", self.server_port_input)
+        self.server_layout.addRow("Secret Key:", self.server_key_input)
+        self.server_layout.addRow(self.start_server_btn, self.stop_server_btn)
+        self.server_layout.addRow(self.server_status_label)
+
+    def setup_qss_editor_tab(self):
+        """Sets up the UI for the QSS stylesheet editor tab."""
+        description = QLabel(
+            "Edit the QSS below. Use color keys like <accent>, <bg-l1>, etc. "
+            "These will be replaced with colors from the current palette."
+        )
+        description.setWordWrap(True)
+        self.qss_layout.addWidget(description)
+
+        self.qss_editor = QTextEdit()
+        self.qss_editor.setFont(self._font_manager.get_font('log'))
+        self.qss_editor.setAcceptRichText(False)
+        self.qss_layout.addWidget(self.qss_editor)
+
+        apply_btn = QPushButton("Apply Stylesheet")
+        self.qss_layout.addWidget(apply_btn)
+
+        # --- Connections ---
+        apply_btn.clicked.connect(self.apply_qss_style)
+
+        # --- Pre-load default QSS ---
+        default_qss = """
+/*
+ * Use key inside <> to insert colors from the current palette.
+ * Examples: <accent>, <support>, <neutral>, <bg>, <fg>
+ * Lightness modifiers are also available: e.g., <accent_l1>, <bg1>, <neutral_d2> etc..
+*/
+
+QPushButton {
+    background-color: <accent>;
+    color: <bg>;
+    border: 0px solid <accent_d1>;
+    padding: 5px;
+    border-radius: 3px;
+    min-height:25px;
+    min-width:75px;
+}
+
+QPushButton:hover {
+    background-color: <accent_l1>;
+}
+
+QPushButton:pressed {
+    background-color: <accent_d1>;
+}
+
+
+QComboBox {
+    background-color: <bg2>;
+    border: 1px solid <neutral>;
+    border-radius:5px;
+    padding: 3px;
+}
+
+QTabWidget::pane {
+    border-top: 2px solid <accent>;
+}
+
+QTabBar::tab {
+    background: <bg1>;
+    color: <accent>;
+    padding: 8px;
+    border: 0px solid <support>;
+    border-bottom: none;
+}
+
+QTabBar::tab:selected, QTabBar::tab:hover {
+    background: <accent>;
+    color: <bg>;
+}
+        """.strip()
+        self.qss_editor.setPlainText(default_qss)
+
+    def apply_qss_style(self):
+        """Applies the QSS from the editor to the application."""
+        raw_qss = self.qss_editor.toPlainText()
+
+        def replace_color(match):
+            key = match.group(1)
+            try:
+                return StyleManager.get_colour(key)
+            except KeyError:
+                self._logger.warning(f"QSS color key '<{key}>' not found in StyleManager.")
+                return "black" # Fallback color
+
+        # Use regex to find all instances of <key> and replace them
+        processed_qss = re.sub(r"<([\w-]+)>", replace_color, raw_qss)
+
+        app = QApplication.instance()
+        app.setStyleSheet(processed_qss)
+        AppCntxt.data.style_update()
+        self._logger.info("Applied custom QSS stylesheet.")
+
+    def setup_thread_manager_tab(self):
+        # --- Async Task Section ---
+        async_group = QGroupBox("Async Task (Coroutine)")
+        async_layout = QFormLayout(async_group)
+        run_async_btn = QPushButton("Run Async Task (sleeps 5s)")
+        self.async_status_label = QLabel("Status: Idle")
+        async_layout.addRow(run_async_btn)
+        async_layout.addRow(self.async_status_label)
+        self.thread_layout.addWidget(async_group)
+
+        # --- Blocking Task Section ---
+        blocking_group = QGroupBox("Blocking Task (Thread Pool)")
+        blocking_layout = QFormLayout(blocking_group)
+        run_blocking_btn = QPushButton("Run Blocking Task (sleeps 5s)")
+        self.blocking_status_label = QLabel("Status: Idle")
+        blocking_layout.addRow(run_blocking_btn)
+        blocking_layout.addRow(self.blocking_status_label)
+        self.thread_layout.addWidget(blocking_group)
+
+        # --- Token-Limited Tasks Section ---
+        token_group = QGroupBox(f"Token-Limited Tasks (max_tokens={AppCntxt.threader._max_tokens})")
+        token_layout = QVBoxLayout(token_group)
+        run_token_tasks_btn = QPushButton("Run 20 Token-Limited Tasks")
+        token_layout.addWidget(run_token_tasks_btn)
+        self.token_status_layout = QVBoxLayout()
+        token_layout.addLayout(self.token_status_layout)
+        self.thread_layout.addWidget(token_group)
+
+        self.thread_layout.addStretch()
+
+        # --- Connections ---
+        run_async_btn.clicked.connect(self.run_sample_async_task)
+        run_blocking_btn.clicked.connect(self.run_sample_blocking_task)
+        run_token_tasks_btn.clicked.connect(self.run_token_limited_tasks)
+
+    def run_sample_async_task(self):
+        """Schedules a sample coroutine on the ThreadManager."""
+        self.async_status_label.setText("Status: Scheduled...")
+
+        async def sample_coro():
+            self.update_status_signal.emit(self.async_status_label, "Status: Running (awaiting sleep)...")
+            await asyncio.sleep(5)
+            self.update_status_signal.emit(self.async_status_label, "Status: Finished.")
+            # Reset after a delay
+            await asyncio.sleep(6)
+            self.update_status_signal.emit(self.async_status_label, "Status: Idle")
+
+        AppCntxt.threader.run_async(sample_coro())
+
+    def run_sample_blocking_task(self):
+        """Submits a sample blocking function to the ThreadManager's executor."""
+        self.blocking_status_label.setText("Status: Submitted...")
+
+        def sample_fn():
+            self.update_status_signal.emit(self.blocking_status_label, "Status: Running (sleeping)...")
+            time.sleep(5)
+            return "Finished."
+
+        future = AppCntxt.threader.submit_blocking(sample_fn)
+        future.add_done_callback(
+            lambda f: (
+                self.blocking_status_label.setText(f"Status: {f.result()}"),
+                # Use QTimer to reset the label after a delay to avoid another thread
+                QTimer.singleShot(3000, lambda: self.blocking_status_label.setText("Status: Idle"))
+            )
+        )
+
+    def run_token_limited_tasks(self):
+        """Runs multiple tasks that compete for a limited number of tokens."""
+        self.clear_layout(self.token_status_layout)
+        task_labels = [QLabel(f"Task {i+1}: Waiting...") for i in range(20)]
+        for label in task_labels:
+            self.token_status_layout.addWidget(label)
+
+        def token_worker(task_num: int, label: QLabel):
+            self.update_status_signal.emit(label, f"Task {task_num}: Waiting for token...")
+            # Use the blocking context manager for simplicity in a worker thread
+            with AppCntxt.threader.token():
+                self.update_status_signal.emit(label, f"Task {task_num}: Acquired token, working (1.5s)...")
+                time.sleep(1.5)
+                self.update_status_signal.emit(label, f"Task {task_num}: Releasing token, finished.")
+
+        # Submit all tasks to the thread pool
+        for i, label in enumerate(task_labels):
+            AppCntxt.threader.submit_blocking(token_worker, i + 1, label)
 
     def setup_tcp_server_tab(self):
         self.server_host_input = QLineEdit("127.0.0.1")
