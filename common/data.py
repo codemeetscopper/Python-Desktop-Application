@@ -12,6 +12,7 @@ class AppData(QObject):
 
     # Signals for thread-safe UI updates
     progress_changed = Signal(int, str)  # (value, message)
+    style_changed = Signal()  # (value, message)
 
     _instance = None
 
@@ -75,3 +76,7 @@ class AppData(QObject):
     def clear_data(self):
         """Reset data store."""
         self._data_store.clear()
+
+    def style_update(self):
+        """Notify all listeners to update style."""
+        self.style_changed.emit()

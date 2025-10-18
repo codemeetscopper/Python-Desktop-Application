@@ -2,7 +2,7 @@ from PySide6.QtCore import QSize
 from PySide6.QtGui import QMouseEvent, QAction, Qt
 from PySide6.QtWidgets import QLabel, QPushButton, QMenu, QHBoxLayout, QWidget
 
-from frontend import AppCntxt
+from common import AppCntxt
 
 
 class CustomTitleBar(QWidget):
@@ -19,33 +19,16 @@ class CustomTitleBar(QWidget):
         # icon + title
         self.icon = QLabel()
         self.icon.setFixedSize(30, 30)
-        self.icon.setPixmap(AppCntxt.styler.get_pixmap('navigation apps', AppCntxt.styler.get_colour('accent'), 28))
 
         self.btn_min = QPushButton("")
         self.btn_max = QPushButton("")
         self.btn_close = QPushButton("")
 
-        self.btn_min.setIcon(AppCntxt.styler.get_pixmap('minimize', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
-        self.btn_max.setIcon(AppCntxt.styler.get_pixmap('navigation fullscreen', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
-        self.btn_close.setIcon(AppCntxt.styler.get_pixmap('navigation close', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
 
         self.title = QLabel(parent.windowTitle())
         self.title.setObjectName("TitleLabel")
-        self.title.setFont(AppCntxt.font.get_font('h2'))
-        self.title.setStyleSheet(f"color: {AppCntxt.styler.get_colour('accent')}")
-
-        # buttons
-
-        for b in (self.btn_min, self.btn_max, self.btn_close):
-            # b.setFixedSize(46, 28)
-            # b.setFlat(True)
-            b.setStyleSheet(f"background-color: transparent; border-radius: 2px;"
-                            f"border: 0px solid {AppCntxt.styler.get_colour('bg1')}; "
-                            f"margin-right: 4px;")
-            b.setIconSize(QSize(self._icon_size, self._icon_size))
-
         self.btn_min.clicked.connect(parent.showMinimized)
-        self.btn_max.clicked.connect(self._toggle_max)
+        self.btn_max.clicked.connect(self.toggle_max)
         self.btn_close.clicked.connect(parent.close)
 
         lay = QHBoxLayout(self)
@@ -58,8 +41,26 @@ class CustomTitleBar(QWidget):
         lay.addWidget(self.btn_max)
         lay.addWidget(self.btn_close)
         self.btn_close.setObjectName("close")
+        self.load_style()
+        AppCntxt.data.style_changed.connect(self.load_style)
 
-    def _toggle_max(self):
+    def load_style(self):
+        self.title.setFont(AppCntxt.font.get_font('h2'))
+        self.title.setStyleSheet(f"color: {AppCntxt.styler.get_colour('accent')}")
+
+        self.icon.setPixmap(AppCntxt.styler.get_pixmap('home heat pump', AppCntxt.styler.get_colour('accent'), 28))
+        self.btn_min.setIcon(AppCntxt.styler.get_pixmap('minimize', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
+        self.btn_max.setIcon(AppCntxt.styler.get_pixmap('navigation fullscreen', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
+        self.btn_close.setIcon(AppCntxt.styler.get_pixmap('navigation close', AppCntxt.styler.get_colour('accent_d3'), self._icon_size))
+
+        for b in (self.btn_min, self.btn_max, self.btn_close):
+            b.setStyleSheet(f"background-color: transparent; border-radius: 2px;"
+                            f"border: 0px solid {AppCntxt.styler.get_colour('bg1')}; "
+                            f"margin-right: 4px;")
+            b.setIconSize(QSize(self._icon_size, self._icon_size))
+
+
+    def toggle_max(self):
         if self._parent.isMaximized():
             self._parent.showNormal()
             self.btn_max.setIcon(AppCntxt.styler.get_pixmap('navigation fullscreen',
@@ -84,7 +85,7 @@ class CustomTitleBar(QWidget):
 
     def mouseDoubleClickEvent(self, e: QMouseEvent):
         if e.button() == Qt.LeftButton:
-            self._toggle_max()
+            self.toggle_max()
 
     def contextMenuEvent(self, e):
         m = QMenu(self)

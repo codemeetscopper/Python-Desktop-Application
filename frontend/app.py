@@ -11,8 +11,8 @@ from common.configuration.parser import ConfigurationManager
 from common.appearance.fontmanager import FontManager
 from common.logger import Logger
 from common.appearance.stylemanager import StyleManager
-from frontend import AppCntxt, AppData
-from frontend.core.popup.popup_c import Popup
+from common import AppCntxt, AppData
+from common.qwidgets.popup.popup_c import Popup
 from frontend.mainwindow.mainwindow_c import MainWindow
 from frontend.splash.splash_c import Splash
 

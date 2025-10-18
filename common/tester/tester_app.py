@@ -3,18 +3,19 @@ import os
 import shutil
 import json
 import logging
-from PySide6.QtCore import Qt, QObject, Signal, QThread
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QFileDialog, QVBoxLayout, QHBoxLayout,
-    QLabel, QComboBox, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QGroupBox, QFormLayout, QScrollArea,
+    QLabel, QComboBox, QGridLayout, QLineEdit, QPushButton, QGroupBox, QFormLayout, QScrollArea,
     QSpinBox, QTextEdit, QSplitter, QFrame, QColorDialog
 )
-from PySide6.QtGui import QColor, QPainter, QIcon, QPixmap, QFont, QImage
+from PySide6.QtGui import QColor, QPainter, QPixmap, QImage
 
 from common import threadmanager
 from common.appearance.stylemanager import StyleManager
 from common.configuration.parser import ConfigurationManager, SettingItem
 from common.data import AppData
+from common.qwidgets.titlebar import CustomTitleBar
 from common.tester.tester import Ui_TesterWindow
 from common.appearance.fontmanager import FontManager
 from common.appearance.iconmanager import IconManager
@@ -22,8 +23,8 @@ from common.logger import Logger
 from common.tcpinterface.backendserver import BackendServer
 from common.tcpinterface.backendclient import BackendClient
 from common.tcpinterface.aes import AESCipher
-from frontend import AppCntxt
-from frontend.core.titlebar import CustomTitleBar
+from common import AppCntxt
+
 
 
 class ColourSwatch(QWidget):
@@ -742,6 +743,7 @@ class MainWindow(QMainWindow):
         self.icon_color_combo.blockSignals(False)
 
         self.setPalette(StyleManager.get_palette())
+        AppCntxt.data.style_update()
         # self.update_icon_display() # This can cause excessive reloads, called explicitly now
 
     def clear_layout(self, layout):

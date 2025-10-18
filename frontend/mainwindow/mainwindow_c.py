@@ -6,9 +6,9 @@ from PySide6.QtWidgets import (
 
 from common.configuration.parser import ConfigurationManager
 from common.logger import Logger
-from frontend import AppCntxt
+from common import AppCntxt
+from common.qwidgets.titlebar import CustomTitleBar
 from frontend.mainwindow.mainwindow import Ui_MainWindow
-from frontend.core.titlebar import CustomTitleBar
 
 
 class MainWindow(QMainWindow):

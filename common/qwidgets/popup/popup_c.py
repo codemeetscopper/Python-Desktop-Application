@@ -1,11 +1,11 @@
 from typing import Optional
 
 from PySide6.QtCore import Qt, QEventLoop, QSize
-from PySide6.QtWidgets import QWidget, QStyle
+from PySide6.QtWidgets import QWidget
 from PySide6.QtGui import QIcon
 
-from frontend import AppCntxt
-from frontend.core.popup.popup import Ui_Popup
+from common import AppCntxt
+from common.qwidgets.popup.popup import Ui_Popup
 
 
 class Popup(QWidget):

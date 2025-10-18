@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QWidget
 
-from frontend import AppCntxt
+from common import AppCntxt
 from frontend.splash.splash import Ui_Splash
 
 
@@ -31,7 +31,7 @@ class Splash(QWidget):
         self.ui.version_label.setText(self.version)
         self.ui.app_name_label.setFont(AppCntxt.font.get_font('h1'))
         self.ui.app_name_label.setStyleSheet(f"color: {AppCntxt.styler.get_colour('accent')}")
-        self.ui.logo_label.setPixmap(AppCntxt.styler.get_pixmap('navigation apps', AppCntxt.styler.get_colour('support'), 100))
+        self.ui.logo_label.setPixmap(AppCntxt.styler.get_pixmap('home heat pump', AppCntxt.styler.get_colour('support'), 100))
 
     def _setup_progress_bar(self):
         style = f"""
