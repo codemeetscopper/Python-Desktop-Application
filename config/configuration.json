@@ -3,14 +3,20 @@
         "user": {
             "accent": {
                 "name": "Accent Colour",
-                "value": "#7d8be0",
+                "value": "#0a734b",
                 "values": [
                     "#a52b2b",
                     "#b52b2b",
                     "#0c4d35",
                     "#ccff00",
                     "#7d8be0",
-                    "#55aa7f"
+                    "#55aa7f",
+                    "#aa0000",
+                    "#aa00ff",
+                    "#efce0e",
+                    "#f98886",
+                    "#730a32",
+                    "#0a734b"
                 ],
                 "description": "A sample drop down setting.",
                 "type": "dropdown",
@@ -20,14 +26,16 @@
             },
             "support": {
                 "name": "Support Colour",
-                "value": "#a52b2b",
+                "value": "#730a32",
                 "values": [
                     "#a52b2b",
                     "#b52b2b",
                     "#0c4d35",
                     "#ccff00",
                     "#189bcc",
-                    "#a8581e"
+                    "#a8581e",
+                    "#730a32",
+                    "#0a734b"
                 ],
                 "description": "A sample drop down setting.",
                 "type": "dropdown",
@@ -37,14 +45,16 @@
             },
             "neutral": {
                 "name": "Neutral Colour",
-                "value": "#0c4d35",
+                "value": "#3a5a8f",
                 "values": [
                     "#a52b2b",
                     "#b52b2b",
                     "#0c4d35",
                     "#ccff00",
                     "#7d8be0",
-                    "#03565e"
+                    "#03565e",
+                    "#3a5a8f",
+                    "#730a32"
                 ],
                 "description": "A sample drop down setting.",
                 "type": "dropdown",

@@ -116,7 +116,7 @@ class ThreadManager:
 
     """
 
-    def __init__(self, *, max_workers: int = 4, max_tokens: int = 2):
+    def __init__(self, *, max_workers: int = 10, max_tokens: int = 5):
         """Create the Threadmanager. Call start() to spin up the loop and workers.
 
         Args:
@@ -142,8 +142,21 @@ class ThreadManager:
         logger.debug("Threadmanager created (max_workers=%s, max_tokens=%s)", max_workers, max_tokens)
 
     # ---------------- lifecycle -----------------
+    def reconfigure(self, max_workers: int, max_tokens: int):
+        """Shuts down, reconfigures, and restarts the ThreadManager."""
+        with self._state_lock:
+            if self.is_running():
+                self.shutdown(wait=True)
+
+            self._max_workers = max_workers
+            self._max_tokens = max_tokens
+            self._token_semaphore = threading.Semaphore(max_tokens)
+
+            self.start()
+            logger.info("ThreadManager reconfigured (max_workers=%s, max_tokens=%s)", max_workers, max_tokens)
+
     def start(self) -> None:
-        """Start the Threadmanager: create executor and run loop in background thread.
+        """Start the ThreadManager: create executor and run loop in background thread.
 
         This method is safe to call multiple times; subsequent calls are no-ops.
         """

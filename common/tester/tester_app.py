@@ -296,54 +296,260 @@ class MainWindow(QMainWindow):
 
         # --- Pre-load default QSS ---
         default_qss = """
-/*
- * Use key inside <> to insert colors from the current palette.
- * Examples: <accent>, <support>, <neutral>, <bg>, <fg>
- * Lightness modifiers are also available: e.g., <accent_l1>, <bg1>, <neutral_d2> etc..
+/* 
+   Use key inside <> to insert colors from the current palette. 
+   Examples: <accent>, <support>, <neutral>, <bg>, <fg> * Lightness modifiers are also available: 
+   e.g., <accent_l1>,<accent_l2>,<accent_l3>,<accent_d1>,<accent_d2>,<accent_d3>,
+   <support_l1>,<support_l2>,<support_l3>,<support_d1>,<support_d2>,<support_d3>, 
+   <neutral_l1>,<neutral_l2>,<neutral_l3>,<neutral_d1>,<neutral_d2>,<neutral_d3>,
+   <bg1>,<bg2>,<bg3>,
+   <fg1>,<fg2>,<fg3> 
 */
 
+/* ===========================
+   BUTTONS
+   =========================== */
 QPushButton {
     background-color: <accent>;
     color: <bg>;
     border: 0px solid <accent_d1>;
-    padding: 5px;
-    border-radius: 3px;
-    min-height:25px;
-    min-width:75px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    min-height: 25px;
+    min-width: 75px;
+    max-width: 150px;
 }
-
 QPushButton:hover {
     background-color: <accent_l1>;
 }
-
 QPushButton:pressed {
     background-color: <accent_d1>;
 }
+QPushButton:disabled {
+    background-color: <bg2>;
+    color: <fg3>;
+}
 
+/* ===========================
+   INPUTS & TEXT
+=========================== */
+QLineEdit, QTextEdit, QPlainTextEdit {
+    background-color: <bg1>;
+    color: <fg>;
+    border: 1px solid <neutral>;
+    border-radius: 4px;
+    padding: 4px;
+}
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
+    border: 1px solid <accent>;
+}
+QLabel {
+    color: <fg>;
+    background: transparent;
+}
 
+/* ===========================
+   COMBOBOX
+=========================== */
 QComboBox {
     background-color: <bg2>;
+    color: <fg>;
     border: 1px solid <neutral>;
-    border-radius:5px;
-    padding: 3px;
+    border-radius: 4px;
+    padding: 3px 6px;
+}
+QComboBox:hover {
+    border: 1px solid <accent>;
+}
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 20px;
+    border-left: 1px solid <neutral>;
+    background: <bg2>;
+}
+QComboBox::down-arrow {
+    image: url(:/icons/chevron-down.svg);
+    width: 10px;
+    height: 10px;
 }
 
+/* ===========================
+   TAB WIDGET
+=========================== */
 QTabWidget::pane {
     border-top: 2px solid <accent>;
+    background: <bg>;
 }
-
 QTabBar::tab {
     background: <bg1>;
     color: <accent>;
-    padding: 8px;
-    border: 0px solid <support>;
-    border-bottom: none;
+    padding: 8px 12px;
+    border: 0;
 }
-
 QTabBar::tab:selected, QTabBar::tab:hover {
     background: <accent>;
     color: <bg>;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
 }
+
+/* ===========================
+   SCROLLBARS
+=========================== */
+QScrollBar:horizontal, QScrollBar:vertical {
+    background: <bg2>;
+    border: none;
+    margin: 0px;
+    border-radius: 4px;
+}
+QScrollBar::handle {
+    background: <neutral>;
+    border-radius: 4px;
+}
+QScrollBar::handle:hover {
+    background: <neutral_d1>;
+}
+QScrollBar::add-line, QScrollBar::sub-line {
+    background: transparent;
+    border: none;
+    width: 0;
+    height: 0;
+}
+
+/* ===========================
+   CHECKBOX & RADIO
+=========================== */
+QCheckBox, QRadioButton {
+    color: <fg>;
+    spacing: 6px;
+}
+QCheckBox::indicator, QRadioButton::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid <neutral>;
+    border-radius: 3px;
+    background: <bg1>;
+}
+QCheckBox::indicator:checked, QRadioButton::indicator:checked {
+    background: <accent>;
+    border: 1px solid <accent>;
+}
+QRadioButton::indicator {
+    border-radius: 8px;
+}
+QCheckBox::indicator:hover, QRadioButton::indicator:hover {
+    border: 1px solid <accent>;
+}
+
+/* ===========================
+   MENU & TOOLBUTTON
+=========================== */
+QMenuBar {
+    background: <bg>;
+    color: <fg>;
+}
+QMenuBar::item {
+    padding: 4px 10px;
+    background: transparent;
+}
+QMenuBar::item:selected {
+    background: <accent_l1>;
+    color: <bg>;
+}
+QMenu {
+    background: <bg1>;
+    border: 1px solid <neutral>;
+}
+QMenu::item {
+    padding: 5px 20px;
+    color: <fg>;
+}
+QMenu::item:selected {
+    background: <accent>;
+    color: <bg>;
+}
+QToolButton {
+    background: transparent;
+    border: none;
+    color: <fg>;
+    padding: 4px;
+}
+QToolButton:hover {
+    background: <bg2>;
+}
+QToolButton:checked {
+    background: <accent>;
+    color: <bg>;
+    border-radius: 4px;
+}
+
+/* ===========================
+   SLIDERS
+=========================== */
+QSlider::groove:horizontal {
+    height: 6px;
+    background: <bg2>;
+    border-radius: 3px;
+}
+QSlider::handle:horizontal {
+    background: <accent>;
+    width: 14px;
+    margin: -5px 0;
+    border-radius: 7px;
+}
+QSlider::handle:horizontal:hover {
+    background: <accent_l1>;
+}
+QSlider::groove:vertical {
+    width: 6px;
+    background: <bg2>;
+    border-radius: 3px;
+}
+QSlider::handle:vertical {
+    background: <accent>;
+    height: 14px;
+    margin: 0 -5px;
+    border-radius: 7px;
+}
+
+/* ===========================
+   PROGRESS BAR
+=========================== */
+QProgressBar {
+    border: 1px solid <neutral>;
+    border-radius: 4px;
+    text-align: center;
+    background: <bg2>;
+    color: <fg>;
+    height: 18px;
+}
+QProgressBar::chunk {
+    background-color: <accent>;
+    border-radius: 4px;
+}
+
+/* ===========================
+   TABLES & LISTS
+=========================== */
+QTableView, QListView, QTreeView {
+    background: <bg>;
+    alternate-background-color: <bg1>;
+    color: <fg>;
+    border: 1px solid <neutral>;
+    gridline-color: <neutral>;
+}
+QHeaderView::section {
+    background: <bg2>;
+    color: <fg>;
+    padding: 4px;
+    border: 1px solid <neutral>;
+}
+QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
+    background: <accent>;
+    color: <bg>;
+}
+
         """.strip()
         self.qss_editor.setPlainText(default_qss)
 
@@ -395,12 +601,42 @@ QTabBar::tab:selected, QTabBar::tab:hover {
         token_layout.addLayout(self.token_status_layout)
         self.thread_layout.addWidget(token_group)
 
+        # --- Configuration Section ---
+        config_group = QGroupBox("Configuration")
+        config_layout = QFormLayout(config_group)
+        self.max_workers_spinbox = QSpinBox()
+        self.max_workers_spinbox.setRange(1, 32)
+        self.max_workers_spinbox.setValue(AppCntxt.threader._max_workers)
+        self.max_tokens_spinbox = QSpinBox()
+        self.max_tokens_spinbox.setRange(1, 100)
+        self.max_tokens_spinbox.setValue(AppCntxt.threader._max_tokens)
+        reconfig_btn = QPushButton("Apply and Re-initialize")
+        reconfig_btn.clicked.connect(self.reconfigure_thread_manager)
+        config_layout.addRow("Max Workers:", self.max_workers_spinbox)
+        config_layout.addRow("Max Tokens:", self.max_tokens_spinbox)
+        config_layout.addRow(reconfig_btn)
+        self.thread_layout.addWidget(config_group)
+
         self.thread_layout.addStretch()
 
         # --- Connections ---
         run_async_btn.clicked.connect(self.run_sample_async_task)
         run_blocking_btn.clicked.connect(self.run_sample_blocking_task)
         run_token_tasks_btn.clicked.connect(self.run_token_limited_tasks)
+
+    def reconfigure_thread_manager(self):
+        """Reconfigures the ThreadManager with new settings."""
+        workers = self.max_workers_spinbox.value()
+        tokens = self.max_tokens_spinbox.value()
+        try:
+            AppCntxt.threader.reconfigure(max_workers=workers, max_tokens=tokens)
+            self._logger.info(f"ThreadManager reconfigured: workers={workers}, tokens={tokens}")
+            # Update the group box title
+            token_group = self.thread_tab.findChild(QGroupBox, "Token-Limited Tasks")
+            if token_group:
+                token_group.setTitle(f"Token-Limited Tasks (max_tokens={tokens})")
+        except Exception as e:
+            self._logger.error(f"Failed to reconfigure ThreadManager: {e}")
 
     def run_sample_async_task(self):
         """Schedules a sample coroutine on the ThreadManager."""
@@ -850,33 +1086,38 @@ QTabBar::tab:selected, QTabBar::tab:hover {
             label = QLabel(setting.name)
             delete_btn = QPushButton("Delete")
             delete_btn.clicked.connect(lambda checked=False, k=key: self.delete_setting(k))
+            row = QHBoxLayout()
 
             if setting.type == "dropdown":
                 combo = QComboBox()
                 combo.addItems(setting.values)
                 combo.setCurrentText(setting.value)
                 combo.currentTextChanged.connect(lambda val, k=key: self.on_setting_changed(k, val))
-
-                row = QHBoxLayout()
                 row.addWidget(combo)
-                row.addWidget(delete_btn)
-                self.settings_layout.addRow(label, row)
                 self.combos[key] = combo
-            elif setting.type == "text":
+            elif setting.type in ["text", "filebrowse", "folderbrowse"]:
                 lineedit = QLineEdit()
                 lineedit.setText(str(setting.value))
                 lineedit.editingFinished.connect(lambda k=key, le=lineedit: self.on_text_setting_changed(k, le))
-
-                row = QHBoxLayout()
                 row.addWidget(lineedit)
-                row.addWidget(delete_btn)
-                self.settings_layout.addRow(label, row)
                 self.lineedits[key] = lineedit
+
+                if setting.type == "filebrowse":
+                    browse_btn = QPushButton("Browse...")
+                    browse_btn.clicked.connect(lambda checked=False, le=lineedit, k=key: self.browse_for_file(le, k))
+                    row.addWidget(browse_btn)
+                elif setting.type == "folderbrowse":
+                    browse_btn = QPushButton("Browse...")
+                    browse_btn.clicked.connect(lambda checked=False, le=lineedit, k=key: self.browse_for_folder(le, k))
+                    row.addWidget(browse_btn)
             else:
                 lineedit = QLineEdit()
                 lineedit.setText(str(setting.value))
                 lineedit.setReadOnly(True)
-                self.settings_layout.addRow(label, lineedit)
+                row.addWidget(lineedit)
+
+            row.addWidget(delete_btn)
+            self.settings_layout.addRow(label, row)
 
         # Static settings (always as read-only textboxes)
         static_settings = self._config.data.configuration.static
@@ -987,7 +1228,7 @@ QTabBar::tab:selected, QTabBar::tab:hover {
     def on_text_setting_changed(self, key, lineedit):
         value = lineedit.text()
         self._config.set_value(key, value)
-        self.reload_ui()
+        # No reload_ui() here to avoid losing focus
 
     def add_new_setting(self):
         key = self.new_setting_key.text()
@@ -1029,6 +1270,20 @@ QTabBar::tab:selected, QTabBar::tab:hover {
             self.reload_ui()
         except Exception as e:
             self._logger.error(f"Failed to delete setting '{key}': {e}")
+
+    def browse_for_file(self, lineedit: QLineEdit, key: str):
+        """Opens a file dialog and updates the line edit and setting."""
+        path, _ = QFileDialog.getOpenFileName(self, "Select File")
+        if path:
+            lineedit.setText(path)
+            self.on_text_setting_changed(key, lineedit)
+
+    def browse_for_folder(self, lineedit: QLineEdit, key: str):
+        """Opens a folder dialog and updates the line edit and setting."""
+        path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        if path:
+            lineedit.setText(path)
+            self.on_text_setting_changed(key, lineedit)
 
     def open_color_picker(self, key: str):
         """Opens a QColorDialog and adds the selected color to the setting's values."""
