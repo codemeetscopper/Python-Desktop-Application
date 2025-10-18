@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt, QObject, Signal, QThread
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QFileDialog, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QGridLayout, QLineEdit, QPushButton, QSizePolicy, QGroupBox, QFormLayout, QScrollArea,
-    QSpinBox, QTextEdit, QSplitter, QFrame
+    QSpinBox, QTextEdit, QSplitter, QFrame, QColorDialog
 )
 from PySide6.QtGui import QColor, QPainter, QIcon, QPixmap, QFont, QImage
 
@@ -52,22 +52,29 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.ui = Ui_TesterWindow()
         self.ui.setupUi(self)
-        self.setWindowTitle("Common Tester")
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
+        self.setWindowTitle("Tester Application")
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.Window)
 
         file_path, _ = QFileDialog.getOpenFileName(self, "Select config file.", r"../../config")
         self._config = ConfigurationManager(file_path)
         self._initialise_context()
-        icon_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), '..', '..', 'resources', 'images', 'meterialicons'))
-        IconManager.set_images_path(icon_path)
+
+        # Load paths from config and make them absolute
+        project_root = os.path.abspath(os.path.join(os.path.dirname(file_path), '..'))
+        icon_path_rel = self._config.get_value('icon_path')
+        self.font_path_abs = os.path.join(project_root, self._config.get_value('font_path'))
+        icon_path_abs = os.path.join(project_root, icon_path_rel)
+
+        IconManager.set_images_path(icon_path_abs)
         IconManager.list_icons()
 
         main_splitter = QSplitter(Qt.Orientation.Vertical)
-        main_splitter.addWidget(CustomTitleBar(self))
+        self.titlebar = CustomTitleBar(self)
+        main_splitter.addWidget(self.titlebar)
+
 
         # Main layout setup
-        sub_splitter = QSplitter(Qt.Orientation.Horizontal)
+        sub_splitter = QSplitter(Qt.Orientation.Vertical)
         # self.ui.main_tw.setMinimumWidth(800)
         sub_splitter.addWidget(self.ui.main_tw)
         main_splitter.addWidget(sub_splitter)
@@ -93,8 +100,11 @@ class MainWindow(QMainWindow):
 
         self.setup_tabs()
         self.setup_logger_ui(sub_splitter) # Pass splitter to add logger
-        main_splitter.setSizes([self.height() // 2, self.height() // 2]) # Set 1:1 ratio
+        # main_splitter.setSizes([self.height() // 2, self.height() // 2]) # Set 1:1 ratio
         self.reload_ui()
+        self.setMinimumWidth(900)
+        self.set_application_font('pc')
+
 
         # self.ui.setupUi(self)
         # self.ui.verticalLayout.layout().insertWidget(0, self.titlebar)
@@ -126,16 +136,11 @@ class MainWindow(QMainWindow):
         AppCntxt.font.load_font(r"../../resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h1", 18)
         AppCntxt.font.load_font(r"../../resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h2", 14)
         AppCntxt.font.load_font(r"../../resources/fonts/Roboto-VariableFont_wdth,wght.ttf", "p", 11)
-        AppCntxt.font.load_font(r"../../resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "pc", 11)
+        AppCntxt.font.load_font(r"../../resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "pc", 10)
         AppCntxt.font.load_font(r"../../resources/fonts/Inconsolata-VariableFont_wdth,wght.ttf", "log", 11)
         QApplication.processEvents()
 
     def setup_tabs(self):
-        # Settings Tab
-        self.settings_tab = QWidget()
-        self.settings_layout = QFormLayout(self.settings_tab)
-        self.ui.main_tw.addTab(self.settings_tab, "Settings")
-
         # Palette Tab
         self.palette_tab = QWidget()
         self.palette_layout = QGridLayout(self.palette_tab)
@@ -153,6 +158,11 @@ class MainWindow(QMainWindow):
         self.icon_layout = QVBoxLayout(self.icon_tab)
         self.ui.main_tw.addTab(self.icon_tab, "Icons")
         self.setup_icon_tab()
+
+        # Settings Tab
+        self.settings_tab = QWidget()
+        self.settings_layout = QFormLayout(self.settings_tab)
+        self.ui.main_tw.addTab(self.settings_tab, "Settings")
 
         # Logger Tab is removed from here
 
@@ -179,8 +189,8 @@ class MainWindow(QMainWindow):
         logger_layout = QVBoxLayout(logger_group)
 
         self.log_display = QTextEdit()
-        self.log_display.setMaximumWidth(600)
-        self.log_display.setReadOnly(True)
+        # self.log_display.setMaximumWidth(600)
+        # self.log_display.setReadOnly(True)
         logger_layout.addWidget(self.log_display)
 
         controls_layout = QHBoxLayout()
@@ -367,14 +377,13 @@ class MainWindow(QMainWindow):
 
     def preload_and_display_fonts(self):
         self.clear_layout(self.font_display_layout)
-        font_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'resources', 'fonts'))
-        if not os.path.isdir(font_path):
+        if not os.path.isdir(self.font_path_abs):
             self.font_display_layout.addWidget(QLabel("Font directory not found."))
             return
 
-        for filename in os.listdir(font_path):
+        for filename in os.listdir(self.font_path_abs):
             if filename.lower().endswith(('.ttf', '.otf')):
-                full_path = os.path.join(font_path, filename)
+                full_path = os.path.join(self.font_path_abs, filename)
                 tag = os.path.splitext(filename)[0]
                 try:
                     self._font_manager.load_font(full_path, tag=tag, size=12)
@@ -401,6 +410,7 @@ class MainWindow(QMainWindow):
             preview_label = QLabel("The quick brown fox jumps over the lazy dog.")
             font = self._font_manager.get_font(tag)
             preview_label.setFont(font)
+            preview_label.setMinimumHeight(100)
 
             # Connections
             size_spinbox.valueChanged.connect(
@@ -414,10 +424,11 @@ class MainWindow(QMainWindow):
             entry_layout.addWidget(preview_label)
 
             # # Add a separator
-            # separator = QFrame()
-            # separator.setFrameShape(QFrame.HLine)
+            separator = QFrame()
+            separator.setFrameShape(QFrame.HLine)
+            separator.setMaximumHeight(1)
             # separator.setFrameShadow(QFrame.Sunken)
-            # entry_layout.addWidget(separator)
+            entry_layout.addWidget(separator)
 
             self.font_display_layout.addLayout(entry_layout)
 
@@ -680,12 +691,24 @@ class MainWindow(QMainWindow):
         # Theme settings dropdowns
         theme_settings_layout = QFormLayout()
         for key in theme_keys:
+            if key not in user_settings:
+                continue
             setting = user_settings[key]
             combo = QComboBox()
             combo.addItems(setting.values)
             combo.setCurrentText(setting.value)
             combo.currentTextChanged.connect(lambda val, k=key: self.on_setting_changed(k, val))
-            theme_settings_layout.addRow(QLabel(setting.name), combo)
+
+            if key in ['accent', 'support', 'neutral']:
+                picker_btn = QPushButton("Pick Color")
+                picker_btn.clicked.connect(lambda checked=False, k=key: self.open_color_picker(k))
+                row = QHBoxLayout()
+                row.addWidget(combo)
+                row.addWidget(picker_btn)
+                theme_settings_layout.addRow(QLabel(setting.name), row)
+            else:
+                theme_settings_layout.addRow(QLabel(setting.name), combo)
+
             self.combos[key] = combo
 
         palette_container = QWidget()
@@ -779,6 +802,24 @@ class MainWindow(QMainWindow):
             self.reload_ui()
         except Exception as e:
             self._logger.error(f"Failed to delete setting '{key}': {e}")
+
+    def open_color_picker(self, key: str):
+        """Opens a QColorDialog and adds the selected color to the setting's values."""
+        setting = self._config.data.configuration.user.get(key)
+        if not setting:
+            return
+
+        initial_color = QColor(setting.value)
+        color = QColorDialog.getColor(initial_color, self, f"Select {setting.name}")
+
+        if color.isValid():
+            hex_color = color.name()
+            if hex_color not in setting.values:
+                setting.values.append(hex_color)
+                # No direct method to update just the values list, so we update the whole item
+                self._config.add_user_setting(key, setting)
+                self._logger.info(f"Added new color '{hex_color}' to '{key}' setting.")
+                self.reload_ui()
 
     def closeEvent(self, event, /):
         if self._server:

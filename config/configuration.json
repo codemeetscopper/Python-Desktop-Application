@@ -9,7 +9,8 @@
                     "#b52b2b",
                     "#0c4d35",
                     "#ccff00",
-                    "#7d8be0"
+                    "#7d8be0",
+                    "#55aa7f"
                 ],
                 "description": "A sample drop down setting.",
                 "type": "dropdown",
@@ -19,13 +20,14 @@
             },
             "support": {
                 "name": "Support Colour",
-                "value": "#bb1133",
+                "value": "#a8581e",
                 "values": [
                     "#a52b2b",
                     "#b52b2b",
                     "#0c4d35",
                     "#ccff00",
-                    "#189bcc"
+                    "#189bcc",
+                    "#a8581e"
                 ],
                 "description": "A sample drop down setting.",
                 "type": "dropdown",
@@ -35,13 +37,14 @@
             },
             "neutral": {
                 "name": "Neutral Colour",
-                "value": "#0c4d35",
+                "value": "#03565e",
                 "values": [
                     "#a52b2b",
                     "#b52b2b",
                     "#0c4d35",
                     "#ccff00",
-                    "#7d8be0"
+                    "#7d8be0",
+                    "#03565e"
                 ],
                 "description": "A sample drop down setting.",
                 "type": "dropdown",
@@ -109,7 +112,9 @@
         "static": {
             "sdk_ip_address": "127.0.0.1",
             "sdk_tcp_port": 5000,
-            "sdk_tcp_timeout": 300
+            "sdk_tcp_timeout": 300,
+            "icon_path": "resources/images/meterialicons",
+            "font_path": "resources/fonts"
         }
     },
     "page_mapping": {
