@@ -10,14 +10,13 @@ from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QFileDialog, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QGridLayout, QLineEdit, QPushButton, QGroupBox, QFormLayout, QScrollArea,
-    QSpinBox, QTextEdit, QSplitter, QFrame, QColorDialog
+    QSpinBox, QTextEdit, QSplitter, QFrame, QColorDialog, QTabWidget
 )
 from PySide6.QtGui import QColor, QPainter, QPixmap, QImage
 
-from common import threadmanager
+from common import threadmanager, AppData
 from common.appearance.stylemanager import StyleManager
 from common.configuration.parser import ConfigurationManager, SettingItem
-from common.data import AppData
 from common.qwidgets.titlebar import CustomTitleBar
 from common.tester.tester import Ui_TesterWindow
 from common.appearance.fontmanager import FontManager
@@ -185,7 +184,11 @@ class MainWindow(QMainWindow):
 
         # Settings Tab
         self.settings_tab = QWidget()
-        self.settings_layout = QFormLayout(self.settings_tab)
+        # The main layout for the settings tab will be a QVBoxLayout to hold the new tab widget
+        settings_main_layout = QVBoxLayout(self.settings_tab)
+        settings_main_layout.setContentsMargins(0, 0, 0, 0)
+        self.settings_tab_widget = QTabWidget()
+        settings_main_layout.addWidget(self.settings_tab_widget)
         self.ui.main_tw.addTab(self.settings_tab, "Settings")
 
         # Logger Tab is removed from here
@@ -207,8 +210,6 @@ class MainWindow(QMainWindow):
         self.aes_layout = QVBoxLayout(self.aes_tab)
         self.ui.main_tw.addTab(self.aes_tab, "AES Cipher")
         self.setup_aes_tab()
-
-
 
 
 
@@ -235,7 +236,7 @@ class MainWindow(QMainWindow):
 
         for level in levels:
             btn = QPushButton(level.capitalize())
-            btn.clicked.connect(lambda checked=False, l=level.lower(): getattr(self._logger, l)(f"This is a {l} message."))
+            btn.clicked.connect(lambda checked=False, l=level: getattr(self._logger, l)(f"This is a {l} message."))
             controls_layout.addWidget(btn)
 
         export_btn = QPushButton("Export")
@@ -1077,7 +1078,7 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
 
     def reload_ui(self):
         # Clear layouts
-        self.clear_layout(self.settings_layout)
+        self.settings_tab_widget.clear() # Clear the new tab widget
         self.clear_layout(self.palette_layout)
 
         accent = self._config.get_value('accent')
@@ -1090,65 +1091,83 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
         self.lineedits = {}
         theme_keys = ['accent', 'support', 'neutral', 'theme']
 
-        # User settings
+        # Group user settings by their 'group' property
         user_settings = self._config.data.configuration.user
+        grouped_settings = {}
         for key, setting in user_settings.items():
-            if key in theme_keys:
-                continue  # Skip theme settings, they are on the palette tab
+            # if key in theme_keys:
+            #     continue  # Skip theme settings, they are on the palette tab
+            group_name = setting.group or "General"
+            if group_name not in grouped_settings:
+                grouped_settings[group_name] = []
+            grouped_settings[group_name].append((key, setting))
 
-            label = QLabel(setting.name)
-            delete_btn = QPushButton("Delete")
-            delete_btn.clicked.connect(lambda checked=False, k=key: self.delete_setting(k))
-            row = QHBoxLayout()
+        # Create a tab for each group
+        for group_name, settings_list in sorted(grouped_settings.items()):
+            group_tab = QWidget()
+            group_layout = QFormLayout(group_tab)
 
-            if setting.type == "dropdown":
-                combo = QComboBox()
-                combo.addItems(setting.values)
-                combo.setCurrentText(setting.value)
-                combo.currentTextChanged.connect(lambda val, k=key: self.on_setting_changed(k, val))
-                row.addWidget(combo)
-                self.combos[key] = combo
-            elif setting.type in ["text", "filebrowse", "folderbrowse"]:
-                lineedit = QLineEdit()
-                lineedit.setText(str(setting.value))
-                lineedit.editingFinished.connect(lambda k=key, le=lineedit: self.on_text_setting_changed(k, le))
-                row.addWidget(lineedit)
-                self.lineedits[key] = lineedit
+            for key, setting in settings_list:
+                label = QLabel(setting.name)
+                delete_btn = QPushButton("Delete")
+                delete_btn.clicked.connect(lambda checked=False, k=key: self.delete_setting(k))
+                row = QHBoxLayout()
 
-                if setting.type == "filebrowse":
-                    browse_btn = QPushButton("Browse...")
-                    browse_btn.clicked.connect(lambda checked=False, le=lineedit, k=key: self.browse_for_file(le, k))
-                    row.addWidget(browse_btn)
-                elif setting.type == "folderbrowse":
-                    browse_btn = QPushButton("Browse...")
-                    browse_btn.clicked.connect(lambda checked=False, le=lineedit, k=key: self.browse_for_folder(le, k))
-                    row.addWidget(browse_btn)
-            else:
-                lineedit = QLineEdit()
-                lineedit.setText(str(setting.value))
-                lineedit.setReadOnly(True)
-                row.addWidget(lineedit)
+                if setting.type == "dropdown":
+                    combo = QComboBox()
+                    combo.addItems(setting.values)
+                    combo.setCurrentText(setting.value)
+                    combo.currentTextChanged.connect(lambda val, k=key: self.on_setting_changed(k, val))
+                    row.addWidget(combo)
+                    self.combos[key] = combo
+                elif setting.type in ["text", "filebrowse", "folderbrowse", "file_browse", "folder_browse"]:
+                    lineedit = QLineEdit()
+                    lineedit.setText(str(setting.value))
+                    lineedit.editingFinished.connect(lambda k=key, le=lineedit: self.on_text_setting_changed(k, le))
+                    row.addWidget(lineedit)
+                    self.lineedits[key] = lineedit
 
-            row.addWidget(delete_btn)
-            self.settings_layout.addRow(label, row)
+                    if setting.type in ["filebrowse", "file_browse"]:
+                        browse_btn = QPushButton("Browse...")
+                        browse_btn.clicked.connect(lambda checked=False, le=lineedit, k=key: self.browse_for_file(le, k))
+                        row.addWidget(browse_btn)
+                    elif setting.type in ["folderbrowse", "folder_browse"]:
+                        browse_btn = QPushButton("Browse...")
+                        browse_btn.clicked.connect(lambda checked=False, le=lineedit, k=key: self.browse_for_folder(le, k))
+                        row.addWidget(browse_btn)
+                else:
+                    lineedit = QLineEdit()
+                    lineedit.setText(str(setting.value))
+                    lineedit.setReadOnly(True)
+                    row.addWidget(lineedit)
 
-        # Static settings (always as read-only textboxes)
+                row.addWidget(delete_btn)
+                group_layout.addRow(label, row)
+
+            self.settings_tab_widget.addTab(group_tab, group_name)
+
+        # Static settings (always as read-only textboxes in a "Static" tab)
+        static_tab = QWidget()
+        static_layout = QFormLayout(static_tab)
         static_settings = self._config.data.configuration.static
         for key, value in static_settings.items():
             label = QLabel(key)
             lineedit = QLineEdit()
             lineedit.setText(str(value))
             lineedit.setReadOnly(True)
-            self.settings_layout.addRow(label, lineedit)
+            static_layout.addRow(label, lineedit)
+        self.settings_tab_widget.addTab(static_tab, "Static Settings")
 
-        # --- Add New Setting Form ---
-        new_setting_group = QGroupBox("Add New User Setting")
-        new_setting_layout = QFormLayout(new_setting_group)
+
+        # --- Add New Setting Form in its own tab ---
+        add_setting_tab = QWidget()
+        new_setting_layout = QFormLayout(add_setting_tab)
+
         self.new_setting_key = QLineEdit()
         self.new_setting_name = QLineEdit()
         self.new_setting_value = QLineEdit()
         self.new_setting_type = QComboBox()
-        self.new_setting_type.addItems(["text", "dropdown"])
+        self.new_setting_type.addItems(["text", "dropdown", "file_browse", "folder_browse"])
         self.new_setting_values = QLineEdit()
         self.new_setting_desc = QLineEdit()
         self.new_setting_group = QLineEdit()
@@ -1164,8 +1183,7 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
         new_setting_layout.addRow("Group:", self.new_setting_group)
         new_setting_layout.addRow(add_button)
 
-        # Find the layout of the settings tab and add the groupbox
-        self.settings_tab.layout().addWidget(new_setting_group)
+        self.settings_tab_widget.addTab(add_setting_tab, "+ Add New")
 
         # --- Populate Palette Tab ---
         # Theme settings dropdowns

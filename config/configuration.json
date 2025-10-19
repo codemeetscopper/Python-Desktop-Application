@@ -100,20 +100,20 @@
             },
             "sample_file_browse": {
                 "name": "Sample File Browse",
-                "value": "C:\\some_file.txt",
+                "value": "D:/Development/Python/Python-Desktop-Application/config/configuration.json",
                 "values": [],
                 "description": "A sample file browse setting.",
-                "type": "text",
+                "type": "file_browse",
                 "accessibility": "user",
                 "group": "Sample Group 1",
                 "icon": "images/size.svg"
             },
             "sample_folder_browse": {
                 "name": "Sample File Browse",
-                "value": "C:\\some_folder",
+                "value": "D:/Development/Python/Python-Desktop-Application",
                 "values": [],
                 "description": "A sample folder browse setting.",
-                "type": "text",
+                "type": "folder_browse",
                 "accessibility": "user",
                 "group": "Sample Group 1",
                 "icon": "images/size.svg"
