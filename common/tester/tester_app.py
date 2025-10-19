@@ -302,13 +302,18 @@ class MainWindow(QMainWindow):
    e.g., <accent_l1>,<accent_l2>,<accent_l3>,<accent_d1>,<accent_d2>,<accent_d3>,
    <support_l1>,<support_l2>,<support_l3>,<support_d1>,<support_d2>,<support_d3>, 
    <neutral_l1>,<neutral_l2>,<neutral_l3>,<neutral_d1>,<neutral_d2>,<neutral_d3>,
-   <bg1>,<bg2>,<bg3>,
-   <fg1>,<fg2>,<fg3> 
+   <bg1>,<bg2>,
+   <fg1>,<fg2>,
 */
 
 /* ===========================
    BUTTONS
    =========================== */
+QWidget {
+    background-color: <bg>;
+    color: <fg1>;
+}
+
 QPushButton {
     background-color: <accent>;
     color: <bg>;
@@ -327,7 +332,7 @@ QPushButton:pressed {
 }
 QPushButton:disabled {
     background-color: <bg2>;
-    color: <fg3>;
+    color: <fg2>;
 }
 
 /* ===========================
@@ -574,6 +579,9 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
         self._logger.info("Applied custom QSS stylesheet.")
 
     def setup_thread_manager_tab(self):
+        hor_layout = QHBoxLayout()
+        hor_layout.setContentsMargins(0, 0, 0, 0)
+
         # --- Async Task Section ---
         async_group = QGroupBox("Async Task (Coroutine)")
         async_layout = QFormLayout(async_group)
@@ -581,7 +589,7 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
         self.async_status_label = QLabel("Status: Idle")
         async_layout.addRow(run_async_btn)
         async_layout.addRow(self.async_status_label)
-        self.thread_layout.addWidget(async_group)
+        hor_layout.addWidget(async_group)
 
         # --- Blocking Task Section ---
         blocking_group = QGroupBox("Blocking Task (Thread Pool)")
@@ -590,8 +598,11 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
         self.blocking_status_label = QLabel("Status: Idle")
         blocking_layout.addRow(run_blocking_btn)
         blocking_layout.addRow(self.blocking_status_label)
-        self.thread_layout.addWidget(blocking_group)
+        hor_layout.addWidget(blocking_group)
+        self.thread_layout.addLayout(hor_layout)
 
+        hor_layout1 = QHBoxLayout()
+        hor_layout1.setContentsMargins(0, 0, 0, 0)
         # --- Token-Limited Tasks Section ---
         token_group = QGroupBox(f"Token-Limited Tasks (max_tokens={AppCntxt.threader._max_tokens})")
         token_layout = QVBoxLayout(token_group)
@@ -599,7 +610,7 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
         token_layout.addWidget(run_token_tasks_btn)
         self.token_status_layout = QVBoxLayout()
         token_layout.addLayout(self.token_status_layout)
-        self.thread_layout.addWidget(token_group)
+        hor_layout1.addWidget(token_group)
 
         # --- Configuration Section ---
         config_group = QGroupBox("Configuration")
@@ -615,7 +626,8 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
         config_layout.addRow("Max Workers:", self.max_workers_spinbox)
         config_layout.addRow("Max Tokens:", self.max_tokens_spinbox)
         config_layout.addRow(reconfig_btn)
-        self.thread_layout.addWidget(config_group)
+        hor_layout1.addWidget(config_group)
+        self.thread_layout.addLayout(hor_layout1)
 
         self.thread_layout.addStretch()
 
@@ -818,7 +830,8 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
             app = QApplication.instance()
             app.setFont(font)
             # Re-apply palette and style to force font update across all widgets
-            app.setPalette(StyleManager.get_palette())
+            # app.setPalette(StyleManager.get_palette())
+            self.apply_qss_style()
             self._logger.info(f"Application font set to '{tag}' with size {font.pointSize()}.")
         except (RuntimeError, StopIteration):
             self._logger.error(f"Could not set application font. Tag '{tag}' not found.")
@@ -1208,6 +1221,7 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
             self.icon_color_combo.setCurrentText('accent')
         self.icon_color_combo.blockSignals(False)
 
+        self.apply_qss_style()
         self.setPalette(StyleManager.get_palette())
         AppCntxt.data.style_update()
         # self.update_icon_display() # This can cause excessive reloads, called explicitly now
