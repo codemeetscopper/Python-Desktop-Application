@@ -323,7 +323,7 @@ QWidget {
 
 QPushButton {
     background-color: <support>;
-    color: <bg>;
+    color: white;
     border: 0px solid <accent_d1>;
     padding: 5px 10px;
     border-radius: 4px;
@@ -395,13 +395,13 @@ QTabWidget::pane {
 }
 QTabBar::tab {
     background: <bg1>;
-    color: <accent>;
+    color: <neutral>;
     padding: 8px 12px;
     border: 0;
 }
 QTabBar::tab:selected, QTabBar::tab:hover {
     background: <accent>;
-    color: <bg>;
+    color: white;
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
 }
@@ -410,7 +410,7 @@ QTabBar::tab:selected, QTabBar::tab:hover {
    SCROLLBARS
 =========================== */
 QScrollBar:horizontal, QScrollBar:vertical {
-    background: <bg2>;
+    background-color: <bg1>;
     border: none;
     margin: 0px;
     border-radius: 4px;
@@ -423,7 +423,7 @@ QScrollBar::handle:hover {
     background: <neutral_d1>;
 }
 QScrollBar::add-line, QScrollBar::sub-line {
-    background: transparent;
+    background: <bg1>;
     border: none;
     width: 0;
     height: 0;
@@ -529,7 +529,7 @@ QSlider::handle:vertical {
    PROGRESS BAR
 =========================== */
 QProgressBar {
-    border: 1px solid <neutral>;
+    border: 0px solid <neutral>;
     border-radius: 4px;
     text-align: center;
     background: <bg2>;
