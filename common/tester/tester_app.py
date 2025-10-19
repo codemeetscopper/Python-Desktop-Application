@@ -10,7 +10,7 @@ from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QFileDialog, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QGridLayout, QLineEdit, QPushButton, QGroupBox, QFormLayout, QScrollArea,
-    QSpinBox, QTextEdit, QSplitter, QFrame, QColorDialog, QTabWidget
+    QSpinBox, QTextEdit, QSplitter, QFrame, QColorDialog, QTabWidget, QProgressBar
 )
 from PySide6.QtGui import QColor, QPainter, QPixmap, QImage
 
@@ -211,6 +211,12 @@ class MainWindow(QMainWindow):
         self.ui.main_tw.addTab(self.aes_tab, "AES Cipher")
         self.setup_aes_tab()
 
+        # Data/Signals Tab
+        self.data_tab = QWidget()
+        self.data_layout = QVBoxLayout(self.data_tab)
+        self.ui.main_tw.addTab(self.data_tab, "Data/Signals")
+        self.setup_data_tab()
+
 
 
     def setup_logger_ui(self, parent_splitter):
@@ -316,7 +322,7 @@ QWidget {
 }
 
 QPushButton {
-    background-color: <accent>;
+    background-color: <support>;
     color: <bg>;
     border: 0px solid <accent_d1>;
     padding: 5px 10px;
@@ -342,7 +348,7 @@ QPushButton:disabled {
 QLineEdit, QTextEdit, QPlainTextEdit {
     background-color: <bg1>;
     color: <fg>;
-    border: 1px solid <neutral>;
+    border-bottom: 1px solid <neutral>;
     border-radius: 4px;
     padding: 4px;
 }
@@ -360,7 +366,7 @@ QLabel {
 QComboBox {
     background-color: <bg2>;
     color: <fg>;
-    border: 1px solid <neutral>;
+    border-bottom: 1px solid <neutral>;
     border-radius: 4px;
     padding: 3px 6px;
 }
@@ -701,6 +707,103 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
         # Submit all tasks to the thread pool
         for i, label in enumerate(task_labels):
             AppCntxt.threader.submit_blocking(token_worker, i + 1, label)
+
+    def setup_data_tab(self):
+        """Sets up the UI for testing the AppData class."""
+        # --- Progress Bar Section ---
+        progress_group = QGroupBox("Progress Bar Signal Test")
+        progress_layout = QFormLayout(progress_group)
+
+        self.test_progress_bar = QProgressBar()
+        self.test_progress_bar.setRange(0, 100)
+        AppCntxt.data.register_progressbar(self.test_progress_bar)
+
+        self.progress_value_spinbox = QSpinBox()
+        self.progress_value_spinbox.setRange(0, 100)
+        self.progress_message_input = QLineEdit("Working...")
+        set_progress_btn = QPushButton("Call AppData.set_progress()")
+        set_progress_btn.clicked.connect(self.test_set_progress)
+
+        progress_layout.addRow("Test Progress Bar:", self.test_progress_bar)
+        progress_layout.addRow("Value:", self.progress_value_spinbox)
+        progress_layout.addRow("Message:", self.progress_message_input)
+        progress_layout.addRow(set_progress_btn)
+        self.data_layout.addWidget(progress_group)
+
+        # --- Style Signal Section ---
+        style_group = QGroupBox("Style Signal Test")
+        style_layout = QFormLayout(style_group)
+        emit_style_btn = QPushButton("Call AppData.style_update()")
+        emit_style_btn.clicked.connect(AppCntxt.data.style_update)
+        self.style_signal_status = QLabel("Status: Idle. Click button to emit signal.")
+        AppCntxt.data.style_changed.connect(self.on_style_signal_received)
+
+        style_layout.addRow(emit_style_btn)
+        style_layout.addRow(self.style_signal_status)
+        self.data_layout.addWidget(style_group)
+
+        # --- Data Store Section ---
+        data_store_group = QGroupBox("Shared Data Store Test")
+        data_store_layout = QFormLayout(data_store_group)
+        self.data_key_input = QLineEdit("my_key")
+        self.data_value_input = QLineEdit("my_value")
+        set_data_btn = QPushButton("Set Data")
+        set_data_btn.clicked.connect(self.test_set_data)
+
+        self.data_get_key_input = QLineEdit("my_key")
+        get_data_btn = QPushButton("Get Data")
+        get_data_btn.clicked.connect(self.test_get_data)
+        self.retrieved_data_label = QLabel("Retrieved Value: (none)")
+
+        clear_data_btn = QPushButton("Clear All Data")
+        clear_data_btn.clicked.connect(self.test_clear_data)
+
+        data_store_layout.addRow("Key:", self.data_key_input)
+        data_store_layout.addRow("Value:", self.data_value_input)
+        data_store_layout.addRow(set_data_btn)
+        data_store_layout.addRow(QHBoxLayout()) # Spacer
+        data_store_layout.addRow("Key to Get:", self.data_get_key_input)
+        data_store_layout.addRow(get_data_btn)
+        data_store_layout.addRow(self.retrieved_data_label)
+        data_store_layout.addRow(QHBoxLayout()) # Spacer
+        data_store_layout.addRow(clear_data_btn)
+        self.data_layout.addWidget(data_store_group)
+
+        self.data_layout.addStretch()
+
+    def test_set_progress(self):
+        """Calls the global progress update method in AppData."""
+        value = self.progress_value_spinbox.value()
+        message = self.progress_message_input.text()
+        AppCntxt.data.set_progress(value, message)
+
+    def on_style_signal_received(self):
+        """Slot to handle the style_changed signal from AppData."""
+        self.style_signal_status.setText("Status: Received 'style_changed' signal!")
+        # Reset after a delay
+        QTimer.singleShot(3000, lambda: self.style_signal_status.setText("Status: Idle."))
+
+    def test_set_data(self):
+        """Calls AppData.set_data with values from the UI."""
+        key = self.data_key_input.text()
+        value = self.data_value_input.text()
+        if key:
+            AppCntxt.data.set_data(key, value)
+            self._logger.info(f"Set data: '{key}' = '{value}'")
+
+    def test_get_data(self):
+        """Calls AppData.get_data and displays the result."""
+        key = self.data_get_key_input.text()
+        if key:
+            value = AppCntxt.data.get_data(key, default="<Not Found>")
+            self.retrieved_data_label.setText(f"Retrieved Value: {value}")
+            self._logger.info(f"Retrieved data for key '{key}'.")
+
+    def test_clear_data(self):
+        """Calls AppData.clear_data."""
+        AppCntxt.data.clear_data()
+        self.retrieved_data_label.setText("Retrieved Value: (store cleared)")
+        self._logger.info("Shared data store cleared.")
 
     def setup_tcp_server_tab(self):
         self.server_host_input = QLineEdit("127.0.0.1")

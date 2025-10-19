@@ -1,6 +1,19 @@
 from PySide6.QtCore import QObject, Signal, Slot
-
+from functools import wraps
 from common.logger import Logger
+
+
+def log_signal_emission(signal_name):
+    """Decorator to log when a signal is emitted."""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            # Assuming the class has a _logger attribute
+            if hasattr(self, '_logger'):
+                self._logger.debug(f"Emitting signal '{signal_name}' from {type(self).__name__}.")
+            return func(self, *args, **kwargs)
+        return wrapper
+    return decorator
 
 
 class AppData(QObject):
@@ -77,6 +90,7 @@ class AppData(QObject):
         """Reset data store."""
         self._data_store.clear()
 
+    @log_signal_emission('style_changed')
     def style_update(self):
         """Notify all listeners to update style."""
         self.style_changed.emit()
