@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QColor, QPainter, QPixmap, QImage
 
-from common import threadmanager, AppData
+from common import threadmanager, AppData, initialise_context
 from common.appearance.stylemanager import StyleManager
 from common.configuration.parser import ConfigurationManager, SettingItem
 from common.qwidgets.titlebar import CustomTitleBar
@@ -63,7 +63,8 @@ class MainWindow(QMainWindow):
 
         file_path, _ = QFileDialog.getOpenFileName(self, "Select config file.", r"../../config")
         self._config = ConfigurationManager(file_path)
-        self._initialise_context()
+        # self._initialise_context()
+        initialise_context()
 
         # Load paths from config and make them absolute
         project_root = os.path.abspath(os.path.join(os.path.dirname(file_path), '..'))

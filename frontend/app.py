@@ -5,13 +5,13 @@ import time
 
 from PySide6.QtWidgets import QApplication
 
+from common import initialise_context, AppCntxt, AppData
 from common import threadmanager
 from common.tcpinterface.backendclient import BackendClient
 from common.configuration.parser import ConfigurationManager
 from common.appearance.fontmanager import FontManager
 from common.logger import Logger
 from common.appearance.stylemanager import StyleManager
-from common import AppCntxt, AppData
 from common.qwidgets.popup.popup_c import Popup
 from frontend.mainwindow.mainwindow_c import MainWindow
 from frontend.splash.splash_c import Splash
@@ -19,7 +19,7 @@ from frontend.splash.splash_c import Splash
 
 def run():
     app = QApplication(sys.argv)
-    _initialise_context()
+    initialise_context()
     AppCntxt.logger.info("Welcome!")
 
     splash = Splash(AppCntxt.name, f"Version {AppCntxt.version}")
@@ -40,37 +40,6 @@ def run():
         _on_app_closing()
     splash.close()
     app.exec()
-
-def _initialise_context():
-    AppCntxt.logger = Logger()
-    AppCntxt.threader = threadmanager.get_instance()
-
-    AppCntxt.data = AppData()
-
-    AppCntxt.threader.start()
-    AppCntxt.settings = ConfigurationManager(AppCntxt.config_path)
-
-    ip = AppCntxt.settings.get_value('sdk_ip_address')
-    port = AppCntxt.settings.get_value('sdk_tcp_port')
-    timeout = AppCntxt.settings.get_value('sdk_tcp_timeout')
-    # key = AppCntxt.settings.get_value('sdk_aes_key')
-    key = hashlib.sha256(b"sample key").digest()
-    AppCntxt.backend = BackendClient(ip, port, timeout, secret_key = key)
-
-    AppCntxt.styler = StyleManager()
-    accent = AppCntxt.settings.get_value('accent')
-    support = AppCntxt.settings.get_value('support')
-    neutral = AppCntxt.settings.get_value('neutral')
-    theme = AppCntxt.settings.get_value('theme')
-    AppCntxt.styler.initialise(accent, support, neutral, theme)
-
-    AppCntxt.font = FontManager()
-    AppCntxt.font.load_font(r"resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h1", 18)
-    AppCntxt.font.load_font(r"resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "h2", 14)
-    AppCntxt.font.load_font(r"resources/fonts/Roboto-VariableFont_wdth,wght.ttf", "p", 11)
-    AppCntxt.font.load_font(r"resources/fonts/RobotoCondensed-VariableFont_wght.ttf", "pc", 11)
-    AppCntxt.font.load_font(r"resources/fonts/Inconsolata-VariableFont_wdth,wght.ttf", "log", 11)
-    QApplication.processEvents()
 
 def _initialise_app():
     def initialise_backend():
