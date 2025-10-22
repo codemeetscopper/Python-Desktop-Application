@@ -26,6 +26,8 @@ from common.tcpinterface.backendserver import BackendServer
 from common.tcpinterface.backendclient import BackendClient
 from common.tcpinterface.aes import AESCipher
 from common import AppCntxt
+from common.tester.qss_editor import QssEditorWidget
+from common.appearance.qssmanager import QSSManager
 
 
 
@@ -284,6 +286,8 @@ class MainWindow(QMainWindow):
 
     def setup_qss_editor_tab(self):
         """Sets up the UI for the QSS stylesheet editor tab."""
+        # Remove the old inline editor UI and embed the dedicated widget
+        # description kept for users who expect guidance
         description = QLabel(
             "Edit the QSS below. Use color keys like <accent>, <bg-l1>, etc. "
             "These will be replaced with colors from the current palette."
@@ -291,300 +295,30 @@ class MainWindow(QMainWindow):
         description.setWordWrap(True)
         self.qss_layout.addWidget(description)
 
-        self.qss_editor = QTextEdit()
-        self.qss_editor.setFont(self._font_manager.get_font('log'))
-        self.qss_editor.setAcceptRichText(False)
-        self.qss_layout.addWidget(self.qss_editor)
+        # use the new QssEditorWidget
+        self.qss_widget = QssEditorWidget(parent=self.qss_tab)
+        self.qss_layout.addWidget(self.qss_widget)
 
-        apply_btn = QPushButton("Apply Stylesheet")
-        self.qss_layout.addWidget(apply_btn)
-
-        # --- Connections ---
-        apply_btn.clicked.connect(self.apply_qss_style)
-
-        # --- Pre-load default QSS ---
-        default_qss = """
-/* 
-   Use key inside <> to insert colors from the current palette. 
-   Examples: <accent>, <support>, <neutral>, <bg>, <fg> * Lightness modifiers are also available: 
-   e.g., <accent_l1>,<accent_l2>,<accent_l3>,<accent_d1>,<accent_d2>,<accent_d3>,
-   <support_l1>,<support_l2>,<support_l3>,<support_d1>,<support_d2>,<support_d3>, 
-   <neutral_l1>,<neutral_l2>,<neutral_l3>,<neutral_d1>,<neutral_d2>,<neutral_d3>,
-   <bg1>,<bg2>,
-   <fg1>,<fg2>,
-*/
-
-/* ===========================
-   BUTTONS
-   =========================== */
-QWidget {
-    background-color: <bg>;
-    color: <fg1>;
-}
-
-QPushButton {
-    background-color: <support>;
-    color: white;
-    border: 0px solid <accent_d1>;
-    padding: 5px 10px;
-    border-radius: 4px;
-    min-height: 25px;
-    min-width: 75px;
-    max-width: 150px;
-}
-QPushButton:hover {
-    background-color: <accent_l1>;
-}
-QPushButton:pressed {
-    background-color: <accent_d1>;
-}
-QPushButton:disabled {
-    background-color: <bg2>;
-    color: <fg2>;
-}
-
-/* ===========================
-   INPUTS & TEXT
-=========================== */
-QLineEdit, QTextEdit, QPlainTextEdit {
-    background-color: <bg1>;
-    color: <fg>;
-    border-bottom: 1px solid <neutral>;
-    border-radius: 4px;
-    padding: 4px;
-}
-QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
-    border: 1px solid <accent>;
-}
-QLabel {
-    color: <fg>;
-    background: transparent;
-}
-
-/* ===========================
-   COMBOBOX
-=========================== */
-QComboBox {
-    background-color: <bg2>;
-    color: <fg>;
-    border-bottom: 1px solid <neutral>;
-    border-radius: 4px;
-    padding: 3px 6px;
-}
-QComboBox:hover {
-    border: 1px solid <accent>;
-}
-QComboBox::drop-down {
-    subcontrol-origin: padding;
-    subcontrol-position: top right;
-    width: 20px;
-    border-left: 1px solid <neutral>;
-    background: <bg2>;
-}
-QComboBox::down-arrow {
-    image: url(:/icons/chevron-down.svg);
-    width: 10px;
-    height: 10px;
-}
-
-/* ===========================
-   TAB WIDGET
-=========================== */
-QTabWidget::pane {
-    border-top: 2px solid <accent>;
-    background: <bg>;
-}
-QTabBar::tab {
-    background: <bg1>;
-    color: <neutral>;
-    padding: 8px 12px;
-    border: 0;
-}
-QTabBar::tab:selected, QTabBar::tab:hover {
-    background: <accent>;
-    color: white;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-}
-
-/* ===========================
-   SCROLLBARS
-=========================== */
-QScrollBar:horizontal, QScrollBar:vertical {
-    background-color: <bg1>;
-    border: none;
-    margin: 0px;
-    border-radius: 4px;
-}
-QScrollBar::handle {
-    background: <neutral>;
-    border-radius: 4px;
-}
-QScrollBar::handle:hover {
-    background: <neutral_d1>;
-}
-QScrollBar::add-line, QScrollBar::sub-line {
-    background: <bg1>;
-    border: none;
-    width: 0;
-    height: 0;
-}
-
-/* ===========================
-   CHECKBOX & RADIO
-=========================== */
-QCheckBox, QRadioButton {
-    color: <fg>;
-    spacing: 6px;
-}
-QCheckBox::indicator, QRadioButton::indicator {
-    width: 16px;
-    height: 16px;
-    border: 1px solid <neutral>;
-    border-radius: 3px;
-    background: <bg1>;
-}
-QCheckBox::indicator:checked, QRadioButton::indicator:checked {
-    background: <accent>;
-    border: 1px solid <accent>;
-}
-QRadioButton::indicator {
-    border-radius: 8px;
-}
-QCheckBox::indicator:hover, QRadioButton::indicator:hover {
-    border: 1px solid <accent>;
-}
-
-/* ===========================
-   MENU & TOOLBUTTON
-=========================== */
-QMenuBar {
-    background: <bg>;
-    color: <fg>;
-}
-QMenuBar::item {
-    padding: 4px 10px;
-    background: transparent;
-}
-QMenuBar::item:selected {
-    background: <accent_l1>;
-    color: <bg>;
-}
-QMenu {
-    background: <bg1>;
-    border: 1px solid <neutral>;
-}
-QMenu::item {
-    padding: 5px 20px;
-    color: <fg>;
-}
-QMenu::item:selected {
-    background: <accent>;
-    color: <bg>;
-}
-QToolButton {
-    background: transparent;
-    border: none;
-    color: <fg>;
-    padding: 4px;
-}
-QToolButton:hover {
-    background: <bg2>;
-}
-QToolButton:checked {
-    background: <accent>;
-    color: <bg>;
-    border-radius: 4px;
-}
-
-/* ===========================
-   SLIDERS
-=========================== */
-QSlider::groove:horizontal {
-    height: 6px;
-    background: <bg2>;
-    border-radius: 3px;
-}
-QSlider::handle:horizontal {
-    background: <accent>;
-    width: 14px;
-    margin: -5px 0;
-    border-radius: 7px;
-}
-QSlider::handle:horizontal:hover {
-    background: <accent_l1>;
-}
-QSlider::groove:vertical {
-    width: 6px;
-    background: <bg2>;
-    border-radius: 3px;
-}
-QSlider::handle:vertical {
-    background: <accent>;
-    height: 14px;
-    margin: 0 -5px;
-    border-radius: 7px;
-}
-
-/* ===========================
-   PROGRESS BAR
-=========================== */
-QProgressBar {
-    border: 0px solid <neutral>;
-    border-radius: 4px;
-    text-align: center;
-    background: <bg2>;
-    color: <fg>;
-    height: 18px;
-}
-QProgressBar::chunk {
-    background-color: <accent>;
-    border-radius: 4px;
-}
-
-/* ===========================
-   TABLES & LISTS
-=========================== */
-QTableView, QListView, QTreeView {
-    background: <bg>;
-    alternate-background-color: <bg1>;
-    color: <fg>;
-    border: 1px solid <neutral>;
-    gridline-color: <neutral>;
-}
-QHeaderView::section {
-    background: <bg2>;
-    color: <fg>;
-    padding: 4px;
-    border: 1px solid <neutral>;
-}
-QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
-    background: <accent>;
-    color: <bg>;
-}
-
-        """.strip()
-        self.qss_editor.setPlainText(default_qss)
+        # no local apply button here — the widget exposes apply buttons
+        # ensure the tester app can still call apply_qss_style()
+        # --- Pre-load default QSS is handled inside QssEditorWidget
 
     def apply_qss_style(self):
-        """Applies the QSS from the editor to the application."""
-        raw_qss = self.qss_editor.toPlainText()
-
-        def replace_color(match):
-            key = match.group(1)
-            try:
-                return StyleManager.get_colour(key)
-            except KeyError:
-                self._logger.warning(f"QSS color key '<{key}>' not found in StyleManager.")
-                return "black" # Fallback color
-
-        # Use regex to find all instances of <key> and replace them
-        processed_qss = re.sub(r"<([\w-]+)>", replace_color, raw_qss)
-
-        app = QApplication.instance()
-        app.setStyleSheet(processed_qss)
-        AppCntxt.data.style_update()
-        self._logger.info("Applied custom QSS stylesheet.")
+        """Applies the QSS from the editor to the application (delegates to QssEditorWidget)."""
+        try:
+            if hasattr(self, "qss_widget") and self.qss_widget:
+                self.qss_widget.apply_qss(to_application=True)
+            else:
+                # fallback: if older inline editor exists (rare), process it
+                raw_qss = getattr(self, "qss_editor", QTextEdit()).toPlainText()
+                processed = QSSManager.process(raw_qss)
+                app = QApplication.instance()
+                if app:
+                    app.setStyleSheet(processed)
+                    AppCntxt.data.style_update()
+                    self._logger.info("Applied custom QSS stylesheet (fallback).")
+        except Exception as e:
+            self._logger.error(f"Failed to apply QSS stylesheet: {e}")
 
     def setup_thread_manager_tab(self):
         hor_layout = QHBoxLayout()
