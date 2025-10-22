@@ -119,8 +119,8 @@ class QssEditorWidget(QWidget):
    BUTTONS
    =========================== */
 QWidget {
-    background-color: <bg>;
-    color: <fg1>;
+    background-color: <bg2>;
+    color: <support_d3>;
 }
 
 QPushButton {
@@ -148,9 +148,7 @@ QPushButton:disabled {
    INPUTS & TEXT
 =========================== */
 QLineEdit, QTextEdit, QPlainTextEdit {
-    background-color: <bg1>;
-    color: <fg>;
-    border-bottom: 1px solid <neutral>;
+    border: 1px solid <neutral>;
     border-radius: 4px;
     padding: 4px;
 }
@@ -166,9 +164,7 @@ QLabel {
    COMBOBOX
 =========================== */
 QComboBox {
-    background-color: <bg2>;
-    color: <fg>;
-    border-bottom: 1px solid <neutral>;
+    border: 1px solid <neutral>;
     border-radius: 4px;
     padding: 3px 6px;
 }
@@ -176,11 +172,8 @@ QComboBox:hover {
     border: 1px solid <accent>;
 }
 QComboBox::drop-down {
-    subcontrol-origin: padding;
-    subcontrol-position: top right;
     width: 20px;
     border-left: 1px solid <neutral>;
-    background: <bg2>;
 }
 QComboBox::down-arrow {
     image: url(:/icons/chevron-down.svg);
@@ -193,11 +186,8 @@ QComboBox::down-arrow {
 =========================== */
 QTabWidget::pane {
     border-top: 2px solid <accent>;
-    background: <bg>;
 }
 QTabBar::tab {
-    background: <bg1>;
-    color: <neutral>;
     padding: 8px 12px;
     border: 0;
 }
@@ -212,7 +202,6 @@ QTabBar::tab:selected, QTabBar::tab:hover {
    SCROLLBARS
 =========================== */
 QScrollBar:horizontal, QScrollBar:vertical {
-    background-color: <bg1>;
     border: none;
     margin: 0px;
     border-radius: 4px;
@@ -225,7 +214,6 @@ QScrollBar::handle:hover {
     background: <neutral_d1>;
 }
 QScrollBar::add-line, QScrollBar::sub-line {
-    background: <bg1>;
     border: none;
     width: 0;
     height: 0;
@@ -235,7 +223,6 @@ QScrollBar::add-line, QScrollBar::sub-line {
    CHECKBOX & RADIO
 =========================== */
 QCheckBox, QRadioButton {
-    color: <fg>;
     spacing: 6px;
 }
 QCheckBox::indicator, QRadioButton::indicator {
@@ -331,11 +318,9 @@ QSlider::handle:vertical {
    PROGRESS BAR
 =========================== */
 QProgressBar {
-    border: 0px solid <neutral>;
+    border: 1px solid <neutral>;
     border-radius: 4px;
     text-align: center;
-    background: <bg2>;
-    color: <fg>;
     height: 18px;
 }
 QProgressBar::chunk {
@@ -347,9 +332,6 @@ QProgressBar::chunk {
    TABLES & LISTS
 =========================== */
 QTableView, QListView, QTreeView {
-    background: <bg>;
-    alternate-background-color: <bg1>;
-    color: <fg>;
     border: 1px solid <neutral>;
     gridline-color: <neutral>;
 }
@@ -363,7 +345,6 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
     background: <accent>;
     color: <bg>;
 }
-
         """.strip()
         self.editor.setPlainText(default_qss)
         self.status_label.setText("Loaded sample QSS")
