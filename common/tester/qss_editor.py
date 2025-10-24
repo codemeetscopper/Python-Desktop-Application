@@ -8,7 +8,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel,
     QFileDialog, QColorDialog, QGroupBox, QLineEdit, QComboBox, QListWidget,
-    QProgressBar, QTabWidget, QApplication, QMessageBox
+    QProgressBar, QTabWidget, QApplication, QMessageBox, QSplitter
 )
 
 from common.appearance.qssmanager import QSSManager
@@ -19,7 +19,7 @@ _log = logging.getLogger(__name__)
 
 
 class QssEditorWidget(QWidget):
-    """A compact QSS editor with demo controls and file operations."""
+    """A compact QSS editor with demo controls, translation view, and file operations."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -47,11 +47,40 @@ class QssEditorWidget(QWidget):
         ctrl_row.addWidget(self.apply_app_btn)
         main.addLayout(ctrl_row)
 
+        # --- Splitter with input + translated QSS ---
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        left_box = QVBoxLayout()
+        right_box = QVBoxLayout()
+
+        # Left text editor (raw QSS)
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_label = QLabel("Raw QSS Editor:")
         self.editor = QTextEdit()
         self.editor.setAcceptRichText(False)
         self.editor.setFont(QFont("Courier", 10))
-        main.addWidget(self.editor, 3)
+        left_layout.addWidget(left_label)
+        left_layout.addWidget(self.editor)
 
+        # Right text editor (translated/processed QSS)
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_label = QLabel("Translated QSS:")
+        self.translated_view = QTextEdit()
+        self.translated_view.setReadOnly(True)
+        self.translated_view.setFont(QFont("Courier", 10))
+        right_layout.addWidget(right_label)
+        right_layout.addWidget(self.translated_view)
+
+        splitter.addWidget(left_widget)
+        splitter.addWidget(right_widget)
+        splitter.setStretchFactor(0, 2)
+        splitter.setStretchFactor(1, 2)
+        main.addWidget(splitter, 3)
+
+        # Status bar
         status_row = QHBoxLayout()
         self.status_label = QLabel("Ready")
         self.progress = QProgressBar()
@@ -103,7 +132,7 @@ class QssEditorWidget(QWidget):
         self.apply_app_btn.clicked.connect(lambda: self.apply_qss(to_application=True))
 
     def _load_default_qss(self):
-        # full qss taken from tester_app default (keeps tokens like <accent>, <bg>, etc.)
+        # Placeholder: load your default qss string here
         default_qss = """
 /* 
    Use key inside <> to insert colors from the current palette. 
@@ -384,12 +413,10 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
         color = QColorDialog.getColor(Qt.GlobalColor.white, self, "Pick Accent Colour")
         if color.isValid():
             hexcol = color.name()
-            # preserve other colours if possible
             support = AppCntxt.styler.get_colour('support') if AppCntxt.styler else "#FF9800"
             neutral = AppCntxt.styler.get_colour('neutral') if AppCntxt.styler else "#9E9E9E"
             theme = "light"
             try:
-                # reinitialise global styler
                 AppCntxt.styler.initialise(hexcol, support, neutral, theme)
                 self.status_label.setText(f"StyleManager initialised with accent {hexcol}")
             except Exception as e:
@@ -403,6 +430,10 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
             self.progress.setValue(0)
             processed = QSSManager.process(raw)
             self.progress.setValue(60)
+
+            # --- show translated qss ---
+            self.translated_view.setPlainText(processed)
+
             if to_application:
                 app = QApplication.instance()
                 if app:
@@ -411,13 +442,13 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
                 else:
                     self.status_label.setText("No QApplication instance found")
             else:
-                # apply only to demo group
                 demo_group = self.findChild(QGroupBox)
                 if demo_group:
                     demo_group.setStyleSheet(processed)
                     self.status_label.setText("Applied stylesheet to demo preview")
                 else:
                     self.status_label.setText("Demo preview not found")
+
             self.progress.setValue(100)
         except Exception as e:
             _log.exception("Failed to apply QSS: %s", e)
@@ -436,18 +467,10 @@ QTableView::item:selected, QListView::item:selected, QTreeView::item:selected {
         self.status_label.setText("Styles reset")
 
 
-# Standalone runner for quick testing
 if __name__ == "__main__":
     import sys
-    from PySide6.QtWidgets import QApplication
     app = QApplication(sys.argv)
-    # ensure AppCntxt initialised if available
-    try:
-        from common import initialise_context
-        initialise_context()
-    except Exception:
-        pass
     w = QssEditorWidget()
-    w.resize(900, 700)
+    w.resize(1100, 700)
     w.show()
     sys.exit(app.exec())
