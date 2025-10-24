@@ -18,7 +18,7 @@ class QSSManager:
     - Replaces color tokens: <accent>, <accent_l1>, <bg>, <fg1>, etc.
     """
 
-    _image_token_re = re.compile(r"<img:\s*([\w-]+)\s*;\s*color:\s*([\w-]+)\s*>", flags=re.IGNORECASE)
+    _image_token_re = re.compile(r"<img:\s*(.+?);\s*color:(.+?)>", flags=re.IGNORECASE)
     _colour_token_re = re.compile(r"<\s*([a-zA-Z0-9_]+)\s*>")
 
     @classmethod

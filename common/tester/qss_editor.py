@@ -206,7 +206,7 @@ QComboBox::drop-down {
     border-left: 1px solid <neutral>;
 }
 QComboBox::down-arrow {
-    image: <img: down; color:accent>;
+    image: <img: hardware keyboard arrow down; color:accent>;
     width: 10px;
     height: 10px;
 }
