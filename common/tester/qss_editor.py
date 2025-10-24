@@ -176,7 +176,7 @@ QComboBox::drop-down {
     border-left: 1px solid <neutral>;
 }
 QComboBox::down-arrow {
-    image: url(:/icons/chevron-down.svg);
+    image: <img: down; color:accent>;
     width: 10px;
     height: 10px;
 }

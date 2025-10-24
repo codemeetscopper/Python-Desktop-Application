@@ -19,7 +19,7 @@ class QSSManager:
     - Replaces color tokens: <accent>, <accent_l1>, <bg>, <fg1>, etc.
     """
 
-    _image_token_re = re.compile(r"<\s*image\s*:\s*([^>]+)>", flags=re.IGNORECASE)
+    _image_token_re = re.compile(r"<img:\s*([\w-]+)\s*;\s*color:\s*([\w-]+)\s*>", flags=re.IGNORECASE)
     _colour_token_re = re.compile(r"<\s*([a-zA-Z0-9_]+)\s*>")
 
     @classmethod
@@ -58,34 +58,48 @@ class QSSManager:
                 _log.debug("Failed to resolve colour '%s', defaulting to #000000", colour_part)
                 resolved_colour = "#000000"
 
-            # try locate icon via IconManager
             try:
                 from common.appearance.iconmanager import IconManager
-                images_path = Path(IconManager.get_images_path())
-                # search list of icons
-                all_icons = IconManager.list_icons()
-                candidates = IconManager.search_icons(name_part, all_icons)
-                if not candidates:
-                    _log.warning("Icon '%s' not found", name_part)
+                import base64
+
+                # try direct fetch first
+                svg_data = None
+                try:
+                    svg_data = IconManager.get_svg_data(name_part)
+                except Exception:
+                    svg_data = None
+
+                # fallback to search
+                if not svg_data:
+                    all_icons = IconManager.list_icons()
+                    candidates = IconManager.search_icons(name_part, all_icons)
+                    if not candidates:
+                        _log.warning("Icon '%s' not found", name_part)
+                        return m.group(0)
+                    icon_name = candidates[0]
+                    try:
+                        svg_data = IconManager.get_svg_data(icon_name)
+                    except Exception:
+                        svg_data = None
+
+                if not svg_data:
+                    _log.warning("Icon '%s' missing svg data", name_part)
                     return m.group(0)
-                icon_name = candidates[0]
-                src = images_path / (icon_name + ".svg")
-                if not src.exists():
-                    _log.warning("Icon file missing: %s", src)
-                    return m.group(0)
-                # write temp colored svg
-                temp_dir = Path(tempfile.gettempdir()) / "qt_qss_icons"
-                temp_dir.mkdir(parents=True, exist_ok=True)
-                out_name = f"{icon_name}_{resolved_colour.lstrip('#')}.svg"
-                out_path = temp_dir / out_name
-                if not out_path.exists():
-                    content = src.read_text(encoding='utf-8')
-                    style_snip = f"<style> *{{fill:{resolved_colour} !important; stroke:{resolved_colour} !important}} </style>"
-                    new_content, n = re.subn(r"(<svg[^>]*>)", lambda mm: mm.group(0) + style_snip, content, count=1, flags=re.IGNORECASE)
-                    if n == 0:
-                        new_content = f"<svg>{style_snip}</svg>\n" + content
-                    out_path.write_text(new_content, encoding='utf-8')
-                return f"url('{out_path.as_uri()}')"
+
+                # inject colour style into svg content
+                style_snip = f"<style> *{{fill:{resolved_colour} !important; stroke:{resolved_colour} !important}} </style>"
+                new_content, n = re.subn(r"(<svg[^>]*>)", lambda mm: mm.group(0) + style_snip, svg_data, count=1,
+                                         flags=re.IGNORECASE)
+                if n == 0:
+                    new_content = f"<svg>{style_snip}</svg>\n" + svg_data
+
+                # write to a temp file
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".svg", mode='w', encoding='utf-8') as tf:
+                    tf.write(new_content)
+                    temp_path = tf.name
+                new_content = Path(temp_path).as_uri()
+
+                return f"url('{new_content}')"
             except Exception as e:
                 _log.exception("Failed to process image token: %s", e)
                 return m.group(0)
