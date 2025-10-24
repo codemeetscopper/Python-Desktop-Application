@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from common.appearance.qssmanager import QSSManager
-from common import AppCntxt
+from common import AppCntxt, initialise_context
 from common.appearance.stylemanager import StyleManager
 
 _log = logging.getLogger(__name__)
@@ -24,6 +24,7 @@ class QssEditorWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._setup_ui()
+        initialise_context()
         self._load_default_qss()
 
     def _setup_ui(self):

@@ -1,13 +1,12 @@
-import re
-import tempfile
-from pathlib import Path
 import logging
+import re
+import time
+import uuid
+from pathlib import Path
 
-from typing import Optional
+from common import AppCntxt, Logger
 
-from common import AppCntxt
-
-_log = logging.getLogger(__name__)
+_log = AppCntxt.logger
 
 
 class QSSManager:
@@ -93,13 +92,20 @@ class QSSManager:
                 if n == 0:
                     new_content = f"<svg>{style_snip}</svg>\n" + svg_data
 
-                # write to a temp file
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".svg", mode='w', encoding='utf-8') as tf:
-                    tf.write(new_content)
-                    temp_path = tf.name
-                new_content = Path(temp_path).as_uri()
+                content = cls.make_qt_svg_temp(new_content)
 
-                return f"url('{new_content}')"
+                # write to a temp file
+                # with tempfile.NamedTemporaryFile(delete=False, suffix=".svg", mode='w', encoding='utf-8') as tf:
+                #     tf.write(new_content)
+                #     temp_path = tf.name
+                # # new_content = Path(temp_path).as_uri()
+                # new_content = Path(temp_path).resolve().as_posix()
+                # pix = QPixmap(new_content)
+                # if pix.isNull():
+                #     _log.warning("Generated pixmap is null for icon '%s'", name_part)
+                # new_content = r'D:/Development/Python/Python-Desktop-Application/resources/images/meterialicons/action_3d_rotation_materialicons_24px.svg'
+
+                return content
             except Exception as e:
                 _log.exception("Failed to process image token: %s", e)
                 return m.group(0)
@@ -123,3 +129,45 @@ class QSSManager:
         processed = cls._colour_token_re.sub(colour_replacer, intermediate)
         return processed
 
+    @classmethod
+    def make_qt_svg_temp(cls, svg_content: str, delay_delete: float = 1.0) -> str:
+        """
+        Creates a temporary SVG file in the current working directory (or a 'tmp_qss_icons' folder),
+        returns a Qt-compatible URL (url('path/to/file.svg')),
+        and schedules the file for deletion after a short delay.
+
+        Args:
+            svg_content (str): The SVG content to write.
+            delay_delete (float): How many seconds to wait before deleting the file (default 1.0).
+
+        Returns:
+            str: A Qt-compatible URL string, e.g. url('C:/path/file.svg')
+        """
+        # Create a stable temp directory within the project
+        temp_dir = Path.cwd() / "tmp_qss_icons"
+        temp_dir.mkdir(exist_ok=True)
+
+        # Generate a unique filename
+        temp_file = temp_dir / f"icon_{uuid.uuid4().hex}.svg"
+
+        # Write the SVG content
+        with open(temp_file, "w", encoding="utf-8") as f:
+            f.write(svg_content)
+
+        # Convert to Qt-compatible path (forward slashes)
+        qt_path = temp_file.resolve().as_posix()
+
+        # Schedule deletion in the background after delay
+        # (so Qt has time to read the file)
+        import threading
+        def delete_later(path: Path):
+            time.sleep(delay_delete)
+            try:
+                if path.exists():
+                    path.unlink()
+            except Exception as e:
+                print(f"[make_qt_svg_temp] Failed to delete {path}: {e}")
+
+        threading.Thread(target=delete_later, args=(temp_file,), daemon=True).start()
+
+        return f"url('{qt_path}')"
